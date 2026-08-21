@@ -1,14 +1,12 @@
-from flask import Flask, jsonify, render_template
-import mysql.connector
 import os
+import mysql.connector
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 from dotenv import load_dotenv
 
-# Cargar las variables de entorno desde el archivo .env
 load_dotenv()
 
 app = Flask(__name__)
 
-# Función para conectar a la base de datos
 def get_db_connection():
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
@@ -17,34 +15,32 @@ def get_db_connection():
         database=os.getenv("DB_NAME")
     )
 
-# Ruta principal (luego aquí cargaremos el HTML del Login)
 @app.route('/')
 def index():
-    return "¡Servidor Backend de Nexus RH Funcionando!"
+    return render_template('index.html')
 
-# Ruta de prueba para verificar la conexión a MySQL
-@app.route('/test-db')
-def test_db():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True) # Devuelve los datos como diccionarios
-        
-        # Consultamos el usuario administrador que creaste
-        cursor.execute("""
-            SELECT c.nombre, c.apellido, c.rol, d.nombre AS departamento 
-            FROM colaborador c
-            JOIN departamento d ON c.id_departamento = d.id_departamento
-        """)
-        usuarios = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({"status": "success", "data": usuarios})
+@app.route('/login', methods=['POST'])
+def login():
+    correo = request.form['correo']
+    contrasena = request.form['contrasena']
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)})
+    cursor.execute("""
+        SELECT * FROM colaborador 
+        WHERE correo_laboral = %s AND contrasena = %s
+    """, (correo, contrasena))
+    
+    usuario = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+
+    if usuario:
+        return f"¡Bienvenido al sistema, {usuario['nombre']} {usuario['apellido']}! Tu rol es: {usuario['rol']}"
+    else:
+        return render_template('index.html', error="Credenciales incorrectas. Intenta de nuevo.")
 
 if __name__ == '__main__':
-    # Ejecutamos el servidor en el puerto 5000
     app.run(debug=True, host='0.0.0.0', port=5000)

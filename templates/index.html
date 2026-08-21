@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Iniciar Sesión</title>
+    <!-- Cargamos Bootstrap 5 para el diseño responsivo -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #f4f7f6; /* Fondo gris claro */
+            display: flex; 
+            align-items: center; 
+            height: 100vh; 
+        }
+        .login-card { 
+            border-radius: 15px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            border: none;
+        }
+        .brand-logo { 
+            font-weight: 800; 
+            color: #0d42ff; /* Azul Nexus RH */
+            font-size: 28px; 
+            text-align: center; 
+            margin-bottom: 5px; 
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-5 col-lg-4">
+                <div class="card login-card p-4">
+                    <div class="brand-logo">NEXUS RH</div>
+                    <p class="text-center text-muted mb-4">Gestión de Recursos Humanos</p>
+                    
+                    <!-- Aquí Flask inyectará un mensaje de error si las credenciales fallan -->
+                    {% if error %}
+                    <div class="alert alert-danger py-2 text-center" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Formulario que envía los datos a la ruta /login en Python -->
+                    <form action="/login" method="POST">
+                        <div class="mb-3">
+                            <label for="correo" class="form-label fw-bold">Correo Laboral</label>
+                            <input type="email" class="form-control" id="correo" name="correo" required placeholder="ej. admin@nexusrh.com">
+                        </div>
+                        <div class="mb-4">
+                            <label for="contrasena" class="form-label fw-bold">Contraseña</label>
+                            <input type="password" class="form-control" id="contrasena" name="contrasena" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold" style="background-color: #0d42ff;">Ingresar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
