@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Panel Administrativo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Menú Lateral -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="#" class="active">📊 Panel General</a></li>
+                    <li class="nav-item"><a href="/logout" class="text-danger mt-5">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 fw-bold text-dark">Panel de Asistencia</h1>
+                    <span class="fw-semibold text-secondary">Hola, {{ usuario.nombre }} ({{ usuario.rol }})</span>
+                </div>
+
+                <!-- Sistema de Alertas (Flash Messages) -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Módulo de Marcaje -->
+                <div class="card card-metric p-4 bg-white mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-bold m-0">⏰ Registrar Asistencia</h4>
+                        <span id="reloj" class="fs-4 fw-bold text-primary">00:00:00</span>
+                    </div>
+                    <form action="/marcar-asistencia" method="POST" class="d-inline">
+                        <input type="hidden" name="id_colaborador" value="{{ usuario.id_colaborador }}">
+                        <button type="submit" class="btn btn-success btn-lg fw-bold px-4">📌 Marcar Entrada / Salida</button>
+                    </form>
+                </div>
+
+                <!-- Tabla de Historial -->
+                <div class="card card-metric p-4 bg-white">
+                    <h5 class="fw-bold mb-3">Historial de Registros</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Colaborador</th>
+                                    <th>Entrada</th>
+                                    <th>Salida</th>
+                                    {% if usuario.rol == 'Administrador' %}
+                                    <th class="text-center">Acciones</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for reg in historial %}
+                                <tr>
+                                    <td>{{ reg.fecha }}</td>
+                                    <td>{{ reg.nombre }} {{ reg.apellido }}</td>
+                                    <td><span class="badge bg-success">{{ reg.hora_entrada }}</span></td>
+                                    <td>
+                                        {% if reg.hora_salida %}
+                                            <span class="badge bg-secondary">{{ reg.hora_salida }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark">Pendiente</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    {% if usuario.rol == 'Administrador' %}
+                                    <td class="text-center">
+                                        <!-- Botón Editar -->
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ reg.id_registro }}">✏️</button>
+                                        
+                                        <!-- Botón Eliminar -->
+                                        <form action="/eliminar-asistencia/{{ reg.id_registro }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar este registro?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                                        </form>
+
+                                        <!-- Modal de Edición -->
+                                        <div class="modal fade" id="editModal{{ reg.id_registro }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content text-start">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Editar Registro</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form action="/editar-asistencia/{{ reg.id_registro }}" method="POST">
+                                                        <div class="modal-body">
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Hora Entrada</label>
+                                                                <input type="time" class="form-control" name="hora_entrada" value="{{ reg.hora_entrada }}" step="1" required>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Hora Salida</label>
+                                                                <input type="time" class="form-control" name="hora_salida" value="{{ reg.hora_salida if reg.hora_salida else '' }}" step="1">
+                                                                <small class="text-muted">Déjalo en blanco si aún no ha marcado salida.</small>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Script Reloj y Bootstrap JS para que funcionen los Modales -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function actualizarReloj() {
+            const ahora = new Date();
+            document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-PA', {hour12: false});
+        }
+        setInterval(actualizarReloj, 1000);
+        actualizarReloj();
+    </script>
+</body>
+</html>
