@@ -160,6 +160,147 @@ def eliminar_asistencia(id_registro):
     flash("Registro eliminado permanentemente.", "danger")
     return redirect(url_for('dashboard'))
 
+
+# --- 5. RUTAS DE GESTIÓN DE COLABORADORES (CRUD) ---
+@app.route('/colaboradores', methods=['GET'])
+def colaboradores():
+    # Verificar si el usuario ha iniciado sesión
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. Obtener la lista de departamentos (EN SINGULAR)
+        cursor.execute("SELECT * FROM departamento")
+        departamentos = cursor.fetchall()
+
+        # 2. Obtener la lista de cargos (EN SINGULAR)
+        cursor.execute("SELECT * FROM cargo")
+        cargos = cursor.fetchall()
+
+        # 3. Obtener los colaboradores con los JOINs actualizados (EN SINGULAR)
+        query = """
+            SELECT c.*, d.nombre AS nombre_departamento, ca.titulo AS nombre_cargo 
+            FROM colaborador c 
+            LEFT JOIN departamento d ON c.id_departamento = d.id_departamento 
+            LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+        """
+        cursor.execute(query)
+        empleados = cursor.fetchall()
+
+    except Exception as err:
+        flash(f"Error al cargar los datos: {err}", "danger")
+        empleados, departamentos, cargos = [], [], []
+    finally:
+        cursor.close()
+        conn.close()
+
+    # 4. Enviar todo al HTML
+    return render_template('colaboradores.html', 
+                           empleados=empleados, 
+                           departamentos=departamentos, 
+                           cargos=cargos)
+
+@app.route('/agregar-colaborador', methods=['POST'])
+def agregar_colaborador():
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    correo = request.form['correo']
+    contrasena = request.form['contrasena'] 
+    rol = request.form['rol']
+    fecha_ingreso = request.form['fecha_ingreso'] 
+    salario = request.form['salario'] 
+    
+    #  CAMPOS OBLIGATORIOS
+    estado = request.form['estado']
+    id_departamento = request.form['id_departamento']
+    id_cargo = request.form['id_cargo']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # Añadimos los campos extra al INSERT
+        cursor.execute("""
+            INSERT INTO colaborador 
+            (cedula, nombre, apellido, correo_laboral, contrasena, rol, fecha_ingreso, salario, estado, id_departamento, id_cargo)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (cedula, nombre, apellido, correo, contrasena, rol, fecha_ingreso, salario, estado, id_departamento, id_cargo))
+        conn.commit()
+        flash("Colaborador agregado exitosamente al sistema.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error en BD al agregar: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('colaboradores'))
+
+
+@app.route('/editar-colaborador/<int:id_colaborador>', methods=['POST'])
+def editar_colaborador(id_colaborador):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    cedula = request.form['cedula']
+    nombre = request.form['nombre']
+    apellido = request.form['apellido']
+    correo = request.form['correo']
+    rol = request.form['rol']
+    fecha_ingreso = request.form['fecha_ingreso']
+    salario = request.form['salario']
+    estado = request.form['estado']
+    id_departamento = request.form['id_departamento']
+    id_cargo = request.form['id_cargo']
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE colaborador 
+            SET cedula = %s, nombre = %s, apellido = %s, correo_laboral = %s, 
+                rol = %s, fecha_ingreso = %s, salario = %s, estado = %s, 
+                id_departamento = %s, id_cargo = %s
+            WHERE id_colaborador = %s
+        """, (cedula, nombre, apellido, correo, rol, fecha_ingreso, salario, estado, id_departamento, id_cargo, id_colaborador))
+        conn.commit()
+        flash("Datos del colaborador actualizados correctamente.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al actualizar: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(url_for('colaboradores'))
+
+@app.route('/eliminar-colaborador/<int:id_colaborador>', methods=['POST'])
+def eliminar_colaborador(id_colaborador):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM colaborador WHERE id_colaborador = %s", (id_colaborador,))
+        conn.commit()
+        flash("Colaborador eliminado permanentemente.", "warning")
+    except mysql.connector.Error as err:
+        # Por si hay registros de asistencia ligados a este usuario
+        flash("No se puede eliminar el usuario porque tiene registros asociados (ej. Asistencia).", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return redirect(url_for('colaboradores'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
     

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Colaboradores</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Menú Lateral -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
+                    <li class="nav-item"><a href="/colaboradores" class="active">👥 Colaboradores</a></li>
+                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 fw-bold text-dark">Directorio de Colaboradores</h1>
+                    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addModal">
+                        + Nuevo Colaborador
+                    </button>
+                </div>
+
+                <!-- Alertas -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Tabla de Empleados -->
+                <div class="card card-metric p-4 bg-white">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Cédula</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Correo Laboral</th>
+                                    <th>Departamento</th>
+                                    <th>Cargo</th>
+                                    <th>Rol</th>
+                                    {% if session['rol'] in ['Administrador', 'RRHH'] %}
+                                    <th class="text-center">Acciones</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for emp in empleados %}
+                                <tr>
+                                    <td class="fw-bold text-secondary">{{ emp.cedula }}</td>
+                                    <td>{{ emp.nombre }} {{ emp.apellido }}</td>
+                                    <td>{{ emp.correo_laboral }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ emp.nombre_departamento }}</span></td>
+                                    <td><span class="badge bg-light text-primary border">{{ emp.nombre_cargo }}</span></td>
+                                    <td>
+                                        <span class="badge {% if emp.rol == 'Administrador' %}bg-danger{% elif emp.rol == 'RRHH' %}bg-info{% else %}bg-secondary{% endif %}">
+                                            {{ emp.rol }}
+                                        </span>
+                                    </td>
+                                    
+                                    {% if session['rol'] in ['Administrador', 'RRHH'] %}
+                                    <td class="text-center">
+                                        <!-- Botón Editar -->
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ emp.id_colaborador }}">✏️</button>
+                                        
+                                        <!-- Botón Eliminar -->
+                                        <form action="/eliminar-colaborador/{{ emp.id_colaborador }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar a este empleado del sistema?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">🗑️</button>
+                                        </form>
+
+                                        <!-- Modal de Edición -->
+                                        <div class="modal fade" id="editModal{{ emp.id_colaborador }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content text-start">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Editar Colaborador</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <form action="/editar-colaborador/{{ emp.id_colaborador }}" method="POST">
+                                                        <div class="modal-body">
+                                                            <!-- Cédula -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Cédula</label>
+                                                                <input type="text" class="form-control" name="cedula" value="{{ emp.cedula }}" required>
+                                                            </div>
+                                                            
+                                                            <!-- Nombre y Apellido -->
+                                                            <div class="row mb-3">
+                                                                <div class="col">
+                                                                    <label class="form-label fw-bold">Nombre</label>
+                                                                    <input type="text" class="form-control" name="nombre" value="{{ emp.nombre }}" required>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label class="form-label fw-bold">Apellido</label>
+                                                                    <input type="text" class="form-control" name="apellido" value="{{ emp.apellido }}" required>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Correo -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Correo Laboral</label>
+                                                                <input type="email" class="form-control" name="correo" value="{{ emp.correo_laboral }}" required>
+                                                            </div>
+
+                                                            <!-- Rol -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Rol</label>
+                                                                <select class="form-select" name="rol" required>
+                                                                    <option value="Empleado Regular" {% if emp.rol == 'Empleado Regular' %}selected{% endif %}>Empleado Regular</option>
+                                                                    <option value="RRHH" {% if emp.rol == 'RRHH' %}selected{% endif %}>RRHH</option>
+                                                                    <option value="Administrador" {% if emp.rol == 'Administrador' %}selected{% endif %}>Administrador</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <!-- Fecha de Ingreso -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Fecha de Ingreso</label>
+                                                                <input type="date" class="form-control" name="fecha_ingreso" value="{{ emp.fecha_ingreso }}" required>
+                                                            </div>
+
+                                                            <!-- Salario -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Salario Base (Mensual)</label>
+                                                                <div class="input-group">
+                                                                    <span class="input-group-text">$</span>
+                                                                    <input type="number" step="0.01" class="form-control" name="salario" value="{{ emp.salario }}" required>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Estado -->
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Estado</label>
+                                                                <select class="form-select" name="estado" required>
+                                                                    <option value="Activo" {% if emp.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                                                                    <option value="Inactivo" {% if emp.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                                                                    <option value="Suspendido" {% if emp.estado == 'Suspendido' %}selected{% endif %}>Suspendido</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <!-- Departamento y Cargo dinámicos -->
+                                                            <div class="row mb-3">
+                                                                <div class="col">
+                                                                    <label class="form-label fw-bold">Departamento</label>
+                                                                    <select class="form-select" name="id_departamento" required>
+                                                                        <option value="" disabled>Seleccione un departamento...</option>
+                                                                        {% for dep in departamentos %}
+                                                                            <option value="{{ dep.id_departamento }}" {% if emp.id_departamento == dep.id_departamento %}selected{% endif %}>
+                                                                                {{ dep.nombre }}
+                                                                            </option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label class="form-label fw-bold">Cargo</label>
+                                                                    <select class="form-select" name="id_cargo" required>
+                                                                        <option value="" disabled>Seleccione un cargo...</option>
+                                                                        {% for car in cargos %}
+                                                                            <option value="{{ car.id_cargo }}" {% if emp.id_cargo == car.id_cargo %}selected{% endif %}>
+                                                                                {{ car.titulo }}
+                                                                            </option>
+                                                                        {% endfor %}
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar Colaborador -->
+    <div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Registrar Nuevo Colaborador</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/agregar-colaborador" method="POST">
+                    <div class="modal-body">
+                        <!-- Cédula -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Cédula</label>
+                            <input type="text" class="form-control" name="cedula" required placeholder="ej. 8-000-0000">
+                        </div>
+
+                        <!-- Nombre y Apellido -->
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                            <div class="col">
+                                <label class="form-label fw-bold">Apellido</label>
+                                <input type="text" class="form-control" name="apellido" required>
+                            </div>
+                        </div>
+
+                        <!-- Correo Laboral -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Correo Laboral</label>
+                            <input type="email" class="form-control" name="correo" required placeholder="ej. usuario@nexusrh.com">
+                        </div>
+
+                        <!-- Contraseña Temporal -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contraseña Temporal</label>
+                            <input type="text" class="form-control" name="contrasena" required value="Nexus2026">
+                        </div>
+
+                        <!-- Rol -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Rol</label>
+                            <select class="form-select" name="rol" required>
+                                <option value="Empleado Regular">Empleado Regular</option>
+                                <option value="RRHH">RRHH</option>
+                                <option value="Administrador">Administrador</option>
+                            </select>
+                        </div>
+
+                        <!-- Fecha de Ingreso -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fecha de Ingreso</label>
+                            <input type="date" class="form-control" name="fecha_ingreso" required>
+                        </div>
+
+                        <!-- Salario Base -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Salario Base (Mensual)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" step="0.01" class="form-control" name="salario" required placeholder="ej. 850.00">
+                            </div>
+                        </div>
+
+                        <!-- Estado del Empleado -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Estado del Empleado</label>
+                            <select class="form-select" name="estado" required>
+                                <option value="Activo">Activo</option>
+                                <option value="Inactivo">Inactivo</option>
+                                <option value="Suspendido">Suspendido</option>
+                            </select>
+                        </div>
+
+                        <!-- Departamento y Cargo dinámicos para nuevo registro -->
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label fw-bold">Departamento</label>
+                                <select class="form-select" name="id_departamento" required>
+                                    <option value="" disabled selected>Seleccione un departamento...</option>
+                                    {% for dep in departamentos %}
+                                        <option value="{{ dep.id_departamento }}">{{ dep.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label class="form-label fw-bold">Cargo</label>
+                                <select class="form-select" name="id_cargo" required>
+                                    <option value="" disabled selected>Seleccione un cargo...</option>
+                                    {% for car in cargos %}
+                                        <option value="{{ car.id_cargo }}">{{ car.titulo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Colaborador</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SCRIPT DE BOOTSTRAP (Vital para que los modales abran) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
