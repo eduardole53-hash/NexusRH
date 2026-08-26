@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Reportes y Exportación</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        @media print {
+            .sidebar, .no-print { display: none !important; }
+            .col-md-9 { width: 100% !important; margin: 0 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block no-print">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
+                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
+                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
+                    <li class="nav-item"><a href="/cargos">💼 Cargos</a></li>
+                    <li class="nav-item"><a href="/permisos">🏝️ Permisos / Vacaciones</a></li>
+                    <li class="nav-item"><a href="/reportes" class="active">📈 Reportes</a></li>
+                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 fw-bold text-dark">Reportes y Exportación de Datos</h1>
+                    <div class="no-print">
+                        <button onclick="window.print()" class="btn btn-outline-secondary me-2 fw-bold">🖨️ Imprimir / PDF</button>
+                        <a href="/exportar-csv?tipo_reporte={{ tipo_reporte }}&fecha_inicio={{ fecha_inicio }}&fecha_fin={{ fecha_fin }}&id_departamento={{ id_departamento }}" class="btn btn-success fw-bold">📥 Exportar CSV</a>
+                    </div>
+                </div>
+
+                <!-- Mensajes Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold no-print" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Card de Filtros -->
+                <div class="card card-metric p-4 bg-white mb-4 no-print">
+                    <form action="/reportes" method="GET" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Tipo de Reporte</label>
+                            <select name="tipo_reporte" class="form-select" onchange="this.form.submit()">
+                                <option value="asistencia" {% if tipo_reporte == 'asistencia' %}selected{% endif %}>🕒 Registros de Asistencia</option>
+                                <option value="colaboradores" {% if tipo_reporte == 'colaboradores' %}selected{% endif %}>👥 Lista de Colaboradores</option>
+                                <option value="permisos" {% if tipo_reporte == 'permisos' %}selected{% endif %}>🏝️ Permisos y Vacaciones</option>
+                            </select>
+                        </div>
+
+                        {% if tipo_reporte != 'colaboradores' %}
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Fecha Inicio</label>
+                            <input type="date" name="fecha_inicio" class="form-control" value="{{ fecha_inicio }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Fecha Fin</label>
+                            <input type="date" name="fecha_fin" class="form-control" value="{{ fecha_fin }}">
+                        </div>
+                        {% endif %}
+
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">Departamento</label>
+                            <select name="id_departamento" class="form-select">
+                                <option value="">Todos los departamentos</option>
+                                {% for dep in departamentos %}
+                                    <option value="{{ dep.id_departamento }}" {% if id_departamento == dep.id_departamento|string %}selected{% endif %}>{{ dep.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-12 text-end">
+                            <a href="/reportes?tipo_reporte={{ tipo_reporte }}" class="btn btn-light me-2">Limpiar Filtros</a>
+                            <button type="submit" class="btn btn-primary fw-bold">🔍 Filtrar Resultados</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tabla de Resultados -->
+                <div class="card card-metric p-4 bg-white">
+                    <h5 class="fw-bold mb-3 text-secondary">
+                        Resultados: 
+                        {% if tipo_reporte == 'asistencia' %} Reporte de Asistencia
+                        {% elif tipo_reporte == 'colaboradores' %} Reporte de Colaboradores
+                        {% elif tipo_reporte == 'permisos' %} Reporte de Permisos / Vacaciones
+                        {% endif %}
+                    </h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                {% if tipo_reporte == 'asistencia' %}
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Colaborador</th>
+                                    <th>Departamento</th>
+                                    <th>Fecha</th>
+                                    <th>Entrada</th>
+                                    <th>Salida</th>
+                                    <th>Horas Extra</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                                {% elif tipo_reporte == 'colaboradores' %}
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Cédula / DNI</th>
+                                    <th>Nombre Completo</th>
+                                    <th>Email</th>
+                                    <th>Departamento</th>
+                                    <th>Cargo</th>
+                                    <th>Salario</th>
+                                </tr>
+                                {% elif tipo_reporte == 'permisos' %}
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Colaborador</th>
+                                    <th>Departamento</th>
+                                    <th>Tipo Permiso</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th class="text-center">Estado</th>
+                                </tr>
+                                {% endif %}
+                            </thead>
+                            <tbody>
+                                {% if datos %}
+                                    {% for r in datos %}
+                                    <tr>
+                                        {% if tipo_reporte == 'asistencia' %}
+                                            <td class="fw-bold text-secondary">#{{ r.id_registro }}</td>
+                                            <td class="fw-bold text-dark">{{ r.nombre }} {{ r.apellido }}</td>
+                                            <td>{{ r.departamento if r.departamento else 'Sin Dpto' }}</td>
+                                            <td>{{ r.fecha }}</td>
+                                            <td>{{ r.hora_entrada }}</td>
+                                            <td>{{ r.hora_salida if r.hora_salida else 'En turno' }}</td>
+                                            <td>{{ r.horas_extra if r.horas_extra else '0.00' }} hrs</td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">
+                                                    {{ r.estado if r.estado else 'Registrado' }}
+                                                </span>
+                                            </td>
+
+                                        {% elif tipo_reporte == 'colaboradores' %}
+                                            <td class="fw-bold text-secondary">#{{ r.id_colaborador }}</td>
+                                            <td>{{ r.dni }}</td>
+                                            <td class="fw-bold text-dark">{{ r.nombre }} {{ r.apellido }}</td>
+                                            <td>{{ r.email }}</td>
+                                            <td>{{ r.departamento if r.departamento else 'Sin Dpto' }}</td>
+                                            <td>{{ r.cargo if r.cargo else 'Sin Cargo' }}</td>
+                                            <td>${{ "%.2f"|format(r.salario) if r.salario else '0.00' }}</td>
+
+                                        {% elif tipo_reporte == 'permisos' %}
+                                            <td class="fw-bold text-secondary">#{{ r.id_solicitud }}</td>
+                                            <td class="fw-bold text-dark">{{ r.nombre }} {{ r.apellido }}</td>
+                                            <td>{{ r.departamento if r.departamento else 'Sin Dpto' }}</td>
+                                            <td><span class="badge bg-light text-dark border">{{ r.tipo_permiso }}</span></td>
+                                            <td>{{ r.fecha_inicio }}</td>
+                                            <td>{{ r.fecha_fin }}</td>
+                                            <td class="text-center">
+                                                {% if r.estado == 'Pendiente' %}
+                                                    <span class="badge bg-warning text-dark">⏳ Pendiente</span>
+                                                {% elif r.estado == 'Aprobado' %}
+                                                    <span class="badge bg-success">✅ Aprobado</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">❌ Rechazado</span>
+                                                {% endif %}
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">No se encontraron registros para el filtro seleccionado.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

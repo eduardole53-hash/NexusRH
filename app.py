@@ -5,6 +5,10 @@ from zoneinfo import ZoneInfo
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from dotenv import load_dotenv
 
+import csv
+from io import StringIO
+from flask import Response
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -630,6 +634,219 @@ def cambiar_estado_permiso(id_solicitud, nuevo_estado):
         conn.close()
 
     return redirect(url_for('permisos'))
+
+# --- 9. RUTAS DE REPORTES Y EXPORTACIÓN ---
+
+@app.route('/reportes', methods=['GET'])
+def reportes():
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        flash("No tienes permisos para acceder a esta sección.", "danger")
+        return redirect(url_for('dashboard'))
+
+    tipo_reporte = request.args.get('tipo_reporte', 'asistencia')
+    fecha_inicio = request.args.get('fecha_inicio', '')
+    fecha_fin = request.args.get('fecha_fin', '')
+    id_departamento = request.args.get('id_departamento', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    datos_reporte = []
+    lista_departamentos = []
+
+    try:
+        cursor.execute("SELECT * FROM departamento ORDER BY nombre ASC")
+        lista_departamentos = cursor.fetchall()
+
+        # 1. Reporte de Asistencia
+        if tipo_reporte == 'asistencia':
+            query = """
+                SELECT a.*, c.nombre, c.apellido, d.nombre AS departamento
+                FROM registro_asistencia a
+                JOIN colaborador c ON a.id_colaborador = c.id_colaborador
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                WHERE 1=1
+            """
+            params = []
+            if fecha_inicio:
+                query += " AND a.fecha >= %s"
+                params.append(fecha_inicio)
+            if fecha_fin:
+                query += " AND a.fecha <= %s"
+                params.append(fecha_fin)
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+
+            query += " ORDER BY a.fecha DESC, a.hora_entrada DESC"
+            cursor.execute(query, tuple(params))
+            datos_reporte = cursor.fetchall()
+
+        # 2. Reporte de Colaboradores
+        elif tipo_reporte == 'colaboradores':
+            query = """
+                SELECT c.*, d.nombre AS departamento, ca.titulo AS cargo
+                FROM colaborador c
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+                WHERE 1=1
+            """
+            params = []
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+
+            query += " ORDER BY c.nombre ASC"
+            cursor.execute(query, tuple(params))
+            datos_reporte = cursor.fetchall()
+
+        # 3. Reporte de Permisos / Vacaciones
+        elif tipo_reporte == 'permisos':
+            query = """
+                SELECT p.*, c.nombre, c.apellido, d.nombre AS departamento
+                FROM solicitud_permiso p
+                JOIN colaborador c ON p.id_colaborador = c.id_colaborador
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                WHERE 1=1
+            """
+            params = []
+            if fecha_inicio:
+                query += " AND p.fecha_inicio >= %s"
+                params.append(fecha_inicio)
+            if fecha_fin:
+                query += " AND p.fecha_fin <= %s"
+                params.append(fecha_fin)
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+
+            query += " ORDER BY p.fecha_solicitud DESC"
+            cursor.execute(query, tuple(params))
+            datos_reporte = cursor.fetchall()
+
+    except Exception as err:
+        flash(f"Error al generar el reporte: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template(
+        'reportes.html',
+        datos=datos_reporte,
+        departamentos=lista_departamentos,
+        tipo_reporte=tipo_reporte,
+        fecha_inicio=fecha_inicio,
+        fecha_fin=fecha_fin,
+        id_departamento=id_departamento
+    )
+
+
+@app.route('/exportar-csv', methods=['GET'])
+def exportar_csv():
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    tipo_reporte = request.args.get('tipo_reporte', 'asistencia')
+    fecha_inicio = request.args.get('fecha_inicio', '')
+    fecha_fin = request.args.get('fecha_fin', '')
+    id_departamento = request.args.get('id_departamento', '')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    si = StringIO()
+    writer = csv.writer(si)
+
+    try:
+        if tipo_reporte == 'asistencia':
+            writer.writerow(['ID', 'Colaborador', 'Departamento', 'Fecha', 'Hora Entrada', 'Hora Salida', 'Horas Extra', 'Estado'])
+            query = """
+                SELECT a.id_registro, c.nombre, c.apellido, d.nombre AS departamento, a.fecha, a.hora_entrada, a.hora_salida, a.horas_extra, a.estado
+                FROM registro_asistencia a
+                JOIN colaborador c ON a.id_colaborador = c.id_colaborador
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                WHERE 1=1
+            """
+            params = []
+            if fecha_inicio:
+                query += " AND a.fecha >= %s"
+                params.append(fecha_inicio)
+            if fecha_fin:
+                query += " AND a.fecha <= %s"
+                params.append(fecha_fin)
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+            
+            cursor.execute(query, tuple(params))
+            for r in cursor.fetchall():
+                writer.writerow([
+                    r['id_registro'], 
+                    f"{r['nombre']} {r['apellido']}", 
+                    r['departamento'] or 'Sin Dpto', 
+                    r['fecha'], 
+                    r['hora_entrada'], 
+                    r['hora_salida'] or 'En turno', 
+                    r['horas_extra'] or 0, 
+                    r['estado'] or 'N/A'
+                ])
+
+        elif tipo_reporte == 'colaboradores':
+            writer.writerow(['ID', 'Cédula/DNI', 'Nombre Completo', 'Email', 'Departamento', 'Cargo', 'Salario'])
+            query = """
+                SELECT c.id_colaborador, c.dni, c.nombre, c.apellido, c.email, d.nombre AS departamento, ca.titulo AS cargo, c.salario
+                FROM colaborador c
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+                WHERE 1=1
+            """
+            params = []
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+
+            cursor.execute(query, tuple(params))
+            for r in cursor.fetchall():
+                writer.writerow([r['id_colaborador'], r['dni'], f"{r['nombre']} {r['apellido']}", r['email'], r['departamento'] or 'Sin Dpto', r['cargo'] or 'Sin Cargo', r['salario']])
+
+        elif tipo_reporte == 'permisos':
+            writer.writerow(['ID', 'Colaborador', 'Departamento', 'Tipo Permiso', 'Fecha Inicio', 'Fecha Fin', 'Estado'])
+            query = """
+                SELECT p.id_solicitud, c.nombre, c.apellido, d.nombre AS departamento, p.tipo_permiso, p.fecha_inicio, p.fecha_fin, p.estado
+                FROM solicitud_permiso p
+                JOIN colaborador c ON p.id_colaborador = c.id_colaborador
+                LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+                WHERE 1=1
+            """
+            params = []
+            if fecha_inicio:
+                query += " AND p.fecha_inicio >= %s"
+                params.append(fecha_inicio)
+            if fecha_fin:
+                query += " AND p.fecha_fin <= %s"
+                params.append(fecha_fin)
+            if id_departamento:
+                query += " AND c.id_departamento = %s"
+                params.append(id_departamento)
+
+            cursor.execute(query, tuple(params))
+            for r in cursor.fetchall():
+                writer.writerow([r['id_solicitud'], f"{r['nombre']} {r['apellido']}", r['departamento'] or 'Sin Dpto', r['tipo_permiso'], r['fecha_inicio'], r['fecha_fin'], r['estado']])
+
+        output = Response(si.getvalue(), mimetype="text/csv")
+        output.headers["Content-Disposition"] = f"attachment; filename=reporte_{tipo_reporte}.csv"
+        return output
+
+    except Exception as err:
+        flash(f"Error al exportar archivo: {err}", "danger")
+        return redirect(url_for('reportes'))
+    finally:
+        cursor.close()
+        conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
