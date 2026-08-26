@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Departamentos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
+                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
+                    <li class="nav-item"><a href="/departamentos" class="active">🏢 Departamentos</a></li>
+                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 fw-bold text-dark">Gestión de Departamentos</h1>
+                    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
+                        + Nuevo Departamento
+                    </button>
+                </div>
+
+                <!-- Mensajes Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Tabla de Departamentos -->
+                <div class="card card-metric p-4 bg-white">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre del Departamento</th>
+                                    <th>Ubicación</th>
+                                    <th class="text-center">Colaboradores Asignados</th>
+                                    <th class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if departamentos %}
+                                    {% for dep in departamentos %}
+                                    <tr>
+                                        <td class="fw-bold text-secondary">#{{ dep.id_departamento }}</td>
+                                        <td class="fw-bold text-dark">{{ dep.nombre }}</td>
+                                        <td>{{ dep.ubicacion if dep.ubicacion else 'No asignada' }}</td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info text-dark">
+                                                👥 {{ dep.total_colaboradores }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <!-- Botón Editar -->
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ dep.id_departamento }}">✏️ Editar</button>
+                                            
+                                            <!-- Botón Eliminar -->
+                                            <form action="/eliminar-departamento/{{ dep.id_departamento }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar el departamento {{ dep.nombre }}?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Eliminar</button>
+                                            </form>
+
+                                            <!-- Modal de Edición -->
+                                            <div class="modal fade text-start" id="editModal{{ dep.id_departamento }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title fw-bold">Editar Departamento</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form action="/editar-departamento/{{ dep.id_departamento }}" method="POST">
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <label class="form-label fw-bold">Nombre del Departamento</label>
+                                                                    <input type="text" class="form-control" name="nombre" value="{{ dep.nombre }}" required>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label fw-bold">Ubicación / Oficina</label>
+                                                                    <input type="text" class="form-control" name="ubicacion" value="{{ dep.ubicacion }}" placeholder="ej. Piso 2, Edificio A" required>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-4">No hay departamentos registrados.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Agregar Departamento -->
+    <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Registrar Nuevo Departamento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/agregar-departamento" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre del Departamento</label>
+                            <input type="text" class="form-control" name="nombre" placeholder="ej. Contabilidad, Tecnología, Ventas" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ubicación / Oficina</label>
+                            <input type="text" class="form-control" name="ubicacion" placeholder="ej. Planta Baja, Edificio Principal" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Departamento</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

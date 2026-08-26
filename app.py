@@ -301,6 +301,122 @@ def eliminar_colaborador(id_colaborador):
     
     return redirect(url_for('colaboradores'))
 
+
+# --- 6. RUTAS DE GESTIÓN DE DEPARTAMENTOS (CRUD) ---
+
+@app.route('/departamentos', methods=['GET'])
+def departamentos():
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        flash("No tienes permisos para acceder a esta sección.", "danger")
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Consulta los departamentos junto con la cantidad de colaboradores asignados
+        query = """
+            SELECT d.*, COUNT(c.id_colaborador) AS total_colaboradores
+            FROM departamento d
+            LEFT JOIN colaborador c ON d.id_departamento = c.id_departamento
+            GROUP BY d.id_departamento
+            ORDER BY d.nombre ASC
+        """
+        cursor.execute(query)
+        lista_departamentos = cursor.fetchall()
+    except Exception as err:
+        flash(f"Error al obtener departamentos: {err}", "danger")
+        lista_departamentos = []
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('departamentos.html', departamentos=lista_departamentos)
+
+
+@app.route('/agregar-departamento', methods=['POST'])
+def agregar_departamento():
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    nombre = request.form.get('nombre', '').strip()
+    ubicacion = request.form.get('ubicacion', '').strip()
+
+    if not nombre:
+        flash("El nombre del departamento no puede estar vacío.", "warning")
+        return redirect(url_for('departamentos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("INSERT INTO departamento (nombre, ubicacion) VALUES (%s, %s)", (nombre, ubicacion))
+        conn.commit()
+        flash(f"Departamento '{nombre}' creado exitosamente.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al crear departamento: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('departamentos'))
+
+
+@app.route('/editar-departamento/<int:id_departamento>', methods=['POST'])
+def editar_departamento(id_departamento):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    nombre = request.form.get('nombre', '').strip()
+    ubicacion = request.form.get('ubicacion', '').strip()
+
+    if not nombre:
+        flash("El nombre del departamento no puede estar vacío.", "warning")
+        return redirect(url_for('departamentos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("UPDATE departamento SET nombre = %s, ubicacion = %s WHERE id_departamento = %s", (nombre, ubicacion, id_departamento))
+        conn.commit()
+        flash("Departamento actualizado correctamente.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al actualizar departamento: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('departamentos'))
+
+
+@app.route('/eliminar-departamento/<int:id_departamento>', methods=['POST'])
+def eliminar_departamento(id_departamento):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM departamento WHERE id_departamento = %s", (id_departamento,))
+        conn.commit()
+        flash("Departamento eliminado exitosamente.", "warning")
+    except mysql.connector.Error as err:
+        # Captura error de clave foránea si hay colaboradores asignados
+        flash("No se puede eliminar este departamento porque tiene colaboradores asignados.", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('departamentos'))
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
     
