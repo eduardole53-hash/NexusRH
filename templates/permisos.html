@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus RH - Permisos y Vacaciones</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
+                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
+                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
+                    <li class="nav-item"><a href="/cargos">💼 Cargos</a></li>
+                    <li class="nav-item"><a href="/permisos" class="active">🏝️ Permisos / Vacaciones</a></li>
+                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2 fw-bold text-dark">Gestión de Permisos y Vacaciones</h1>
+                    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addPermisoModal">
+                        + Nueva Solicitud
+                    </button>
+                </div>
+
+                <!-- Mensajes Flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Tabla de Solicitudes -->
+                <div class="card card-metric p-4 bg-white">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Colaborador</th>
+                                    <th>Tipo</th>
+                                    <th>Fecha Inicio</th>
+                                    <th>Fecha Fin</th>
+                                    <th>Motivo</th>
+                                    <th class="text-center">Estado</th>
+                                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                                    <th class="text-center">Acciones</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if solicitudes %}
+                                    {% for item in solicitudes %}
+                                    <tr>
+                                        <td class="fw-bold text-secondary">#{{ item.id_solicitud }}</td>
+                                        <td class="fw-bold text-dark">{{ item.nombre }} {{ item.apellido }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ item.tipo_permiso }}</span></td>
+                                        <td>{{ item.fecha_inicio }}</td>
+                                        <td>{{ item.fecha_fin }}</td>
+                                        <td><small class="text-muted">{{ item.motivo if item.motivo else 'Sin motivo' }}</small></td>
+                                        <td class="text-center">
+                                            {% if item.estado == 'Pendiente' %}
+                                                <span class="badge bg-warning text-dark">⏳ Pendiente</span>
+                                            {% elif item.estado == 'Aprobado' %}
+                                                <span class="badge bg-success">✅ Aprobado</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">❌ Rechazado</span>
+                                            {% endif %}
+                                        </td>
+                                        
+                                        {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                                        <td class="text-center">
+                                            {% if item.estado == 'Pendiente' %}
+                                                <form action="/cambiar-estado-permiso/{{ item.id_solicitud }}/Aprobado" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-sm btn-success fw-bold">✓ Aprobar</button>
+                                                </form>
+                                                <form action="/cambiar-estado-permiso/{{ item.id_solicitud }}/Rechazado" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-sm btn-danger fw-bold">✕ Rechazar</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-muted small">Procesado</span>
+                                            {% endif %}
+                                        </td>
+                                        {% endif %}
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">No hay solicitudes registradas.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Solicitar Permiso -->
+    <div class="modal fade" id="addPermisoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Registrar Solicitud</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="/solicitar-permiso" method="POST">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tipo de Solicitud</label>
+                            <select class="form-select" name="tipo_permiso" required>
+                                <option value="" disabled selected>Seleccione una opción...</option>
+                                <option value="Vacaciones">Vacaciones</option>
+                                <option value="Permiso Personal">Permiso Personal</option>
+                                <option value="Incapacidad Médica">Incapacidad Médica</option>
+                                <option value="Licencia por Maternidad/Paternidad">Licencia Maternidad/Paternidad</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Fecha Inicio</label>
+                                <input type="date" class="form-control" name="fecha_inicio" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Fecha Fin</label>
+                                <input type="date" class="form-control" name="fecha_fin" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Motivo / Observación</label>
+                            <textarea class="form-control" name="motivo" rows="3" placeholder="Detalle la razón de su solicitud..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Enviar Solicitud</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

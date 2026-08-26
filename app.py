@@ -525,6 +525,112 @@ def eliminar_cargo(id_cargo):
 
     return redirect(url_for('cargos'))
 
+# --- 8. RUTAS DE PERMISOS Y VACACIONES ---
+
+@app.route('/permisos', methods=['GET'])
+def permisos():
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    usuario_id = session.get('usuario_id')
+    rol = session.get('rol')
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        if rol in ['Administrador', 'RRHH']:
+            # Los administradores y RRHH ven todas las solicitudes de la empresa
+            query = """
+                SELECT p.*, c.nombre, c.apellido 
+                FROM solicitud_permiso p
+                JOIN colaborador c ON p.id_colaborador = c.id_colaborador
+                ORDER BY p.fecha_solicitud DESC
+            """
+            cursor.execute(query)
+        else:
+            # Los colaboradores estándar solo ven sus propias solicitudes
+            query = """
+                SELECT p.*, c.nombre, c.apellido 
+                FROM solicitud_permiso p
+                JOIN colaborador c ON p.id_colaborador = c.id_colaborador
+                WHERE p.id_colaborador = %s
+                ORDER BY p.fecha_solicitud DESC
+            """
+            cursor.execute(query, (usuario_id,))
+
+        solicitudes = cursor.fetchall()
+    except Exception as err:
+        flash(f"Error al cargar las solicitudes: {err}", "danger")
+        solicitudes = []
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('permisos.html', solicitudes=solicitudes)
+
+
+@app.route('/solicitar-permiso', methods=['POST'])
+def solicitar_permiso():
+    if 'usuario_id' not in session:
+        return redirect(url_for('index'))
+
+    id_colaborador = session.get('usuario_id')
+    tipo_permiso = request.form.get('tipo_permiso')
+    fecha_inicio = request.form.get('fecha_inicio')
+    fecha_fin = request.form.get('fecha_fin')
+    motivo = request.form.get('motivo', '').strip()
+
+    if not tipo_permiso or not fecha_inicio or not fecha_fin:
+        flash("Todos los campos obligatorios deben ser completados.", "warning")
+        return redirect(url_for('permisos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+            INSERT INTO solicitud_permiso (id_colaborador, tipo_permiso, fecha_inicio, fecha_fin, motivo)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (id_colaborador, tipo_permiso, fecha_inicio, fecha_fin, motivo))
+        conn.commit()
+        flash("Solicitud registrada exitosamente. Pendiente de aprobación.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al registrar la solicitud: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('permisos'))
+
+
+@app.route('/cambiar-estado-permiso/<int:id_solicitud>/<string:nuevo_estado>', methods=['POST'])
+def cambiar_estado_permiso(id_solicitud, nuevo_estado):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        flash("No tienes permisos para realizar esta acción.", "danger")
+        return redirect(url_for('dashboard'))
+
+    if nuevo_estado not in ['Aprobado', 'Rechazado']:
+        flash("Estado inválido.", "warning")
+        return redirect(url_for('permisos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("UPDATE solicitud_permiso SET estado = %s WHERE id_solicitud = %s", (nuevo_estado, id_solicitud))
+        conn.commit()
+        flash(f"La solicitud #{id_solicitud} ha sido cambiada a '{nuevo_estado}'.", "info")
+    except mysql.connector.Error as err:
+        flash(f"Error al actualizar el estado: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('permisos'))
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
     
