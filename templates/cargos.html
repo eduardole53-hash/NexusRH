@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus RH - Departamentos</title>
+    <title>Nexus RH - Cargos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f4f7f6; }
@@ -23,8 +23,8 @@
                 <ul class="nav flex-column">
                     <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
                     <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
-                    <li class="nav-item"><a href="/departamentos" class="active">🏢 Departamentos</a></li>
-                    <li class="nav-item"><a href="/cargos">💼 Cargos</a></li>
+                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
+                    <li class="nav-item"><a href="/cargos" class="active">💼 Cargos</a></li>
                     <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
                 </ul>
             </div>
@@ -33,9 +33,9 @@
             <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
                 
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2 fw-bold text-dark">Gestión de Departamentos</h1>
-                    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
-                        + Nuevo Departamento
+                    <h1 class="h2 fw-bold text-dark">Gestión de Cargos</h1>
+                    <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addCargoModal">
+                        + Nuevo Cargo
                     </button>
                 </div>
 
@@ -51,57 +51,49 @@
                     {% endif %}
                 {% endwith %}
 
-                <!-- Tabla de Departamentos -->
+                <!-- Tabla de Cargos -->
                 <div class="card card-metric p-4 bg-white">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
-                                    <th>Nombre del Departamento</th>
-                                    <th>Ubicación</th>
+                                    <th>Título del Cargo</th>
                                     <th class="text-center">Colaboradores Asignados</th>
                                     <th class="text-center">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% if departamentos %}
-                                    {% for dep in departamentos %}
+                                {% if cargos %}
+                                    {% for item in cargos %}
                                     <tr>
-                                        <td class="fw-bold text-secondary">#{{ dep.id_departamento }}</td>
-                                        <td class="fw-bold text-dark">{{ dep.nombre }}</td>
-                                        <td>{{ dep.ubicacion if dep.ubicacion else 'No asignada' }}</td>
+                                        <td class="fw-bold text-secondary">#{{ item.id_cargo }}</td>
+                                        <td class="fw-bold text-dark">{{ item.titulo }}</td>
                                         <td class="text-center">
                                             <span class="badge bg-info text-dark">
-                                                👥 {{ dep.total_colaboradores }}
+                                                👥 {{ item.total_colaboradores }}
                                             </span>
                                         </td>
                                         <td class="text-center">
-                                            <!-- Botón Editar -->
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ dep.id_departamento }}">✏️ Editar</button>
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item.id_cargo }}">✏️ Editar</button>
                                             
-                                            <!-- Botón Eliminar -->
-                                            <form action="/eliminar-departamento/{{ dep.id_departamento }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar el departamento {{ dep.nombre }}?');">
+                                            <form action="/eliminar-cargo/{{ item.id_cargo }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar el cargo {{ item.titulo }}?');">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Eliminar</button>
                                             </form>
 
                                             <!-- Modal de Edición -->
-                                            <div class="modal fade text-start" id="editModal{{ dep.id_departamento }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal fade text-start" id="editModal{{ item.id_cargo }}" tabindex="-1" aria-hidden="true">
                                                 <div class="modal-dialog">
                                                     <div class="modal-content">
                                                         <div class="modal-header">
-                                                            <h5 class="modal-title fw-bold">Editar Departamento</h5>
+                                                            <h5 class="modal-title fw-bold">Editar Cargo</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                         </div>
-                                                        <form action="/editar-departamento/{{ dep.id_departamento }}" method="POST">
+                                                        <form action="/editar-cargo/{{ item.id_cargo }}" method="POST">
                                                             <div class="modal-body">
                                                                 <div class="mb-3">
-                                                                    <label class="form-label fw-bold">Nombre del Departamento</label>
-                                                                    <input type="text" class="form-control" name="nombre" value="{{ dep.nombre }}" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label fw-bold">Ubicación / Oficina</label>
-                                                                    <input type="text" class="form-control" name="ubicacion" value="{{ dep.ubicacion }}" placeholder="ej. Piso 2, Edificio A" required>
+                                                                    <label class="form-label fw-bold">Título del Cargo</label>
+                                                                    <input type="text" class="form-control" name="titulo" value="{{ item.titulo }}" required>
                                                                 </div>
                                                             </div>
                                                             <div class="modal-footer">
@@ -117,7 +109,7 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-4">No hay departamentos registrados.</td>
+                                        <td colspan="4" class="text-center text-muted py-4">No hay cargos registrados.</td>
                                     </tr>
                                 {% endif %}
                             </tbody>
@@ -129,28 +121,24 @@
         </div>
     </div>
 
-    <!-- Modal Agregar Departamento -->
-    <div class="modal fade" id="addDepartmentModal" tabindex="-1" aria-hidden="true">
+    <!-- Modal Agregar Cargo -->
+    <div class="modal fade" id="addCargoModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Registrar Nuevo Departamento</h5>
+                    <h5 class="modal-title fw-bold">Registrar Nuevo Cargo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/agregar-departamento" method="POST">
+                <form action="/agregar-cargo" method="POST">
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Nombre del Departamento</label>
-                            <input type="text" class="form-control" name="nombre" placeholder="ej. Contabilidad, Tecnología, Ventas" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Ubicación / Oficina</label>
-                            <input type="text" class="form-control" name="ubicacion" placeholder="ej. Planta Baja, Edificio Principal" required>
+                            <label class="form-label fw-bold">Título del Cargo</label>
+                            <input type="text" class="form-control" name="titulo" placeholder="ej. Desarrollador Senior, Contador" required>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Guardar Departamento</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cargo</button>
                     </div>
                 </form>
             </div>

@@ -415,7 +415,115 @@ def eliminar_departamento(id_departamento):
 
     return redirect(url_for('departamentos'))
 
+# --- 7. RUTAS DE GESTIÓN DE CARGOS (CRUD) ---
 
+@app.route('/cargos', methods=['GET'])
+def cargos():
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        flash("No tienes permisos para acceder a esta sección.", "danger")
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Consultar los cargos junto con el conteo de colaboradores asignados
+        query = """
+            SELECT ca.*, COUNT(c.id_colaborador) AS total_colaboradores
+            FROM cargo ca
+            LEFT JOIN colaborador c ON ca.id_cargo = c.id_cargo
+            GROUP BY ca.id_cargo
+            ORDER BY ca.titulo ASC
+        """
+        cursor.execute(query)
+        lista_cargos = cursor.fetchall()
+    except Exception as err:
+        flash(f"Error al obtener cargos: {err}", "danger")
+        lista_cargos = []
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('cargos.html', cargos=lista_cargos)
+
+
+@app.route('/agregar-cargo', methods=['POST'])
+def agregar_cargo():
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    titulo = request.form.get('titulo', '').strip()
+
+    if not titulo:
+        flash("El título del cargo no puede estar vacío.", "warning")
+        return redirect(url_for('cargos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("INSERT INTO cargo (titulo) VALUES (%s)", (titulo,))
+        conn.commit()
+        flash(f"Cargo '{titulo}' creado exitosamente.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al crear el cargo: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('cargos'))
+
+
+@app.route('/editar-cargo/<int:id_cargo>', methods=['POST'])
+def editar_cargo(id_cargo):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    titulo = request.form.get('titulo', '').strip()
+
+    if not titulo:
+        flash("El título del cargo no puede estar vacío.", "warning")
+        return redirect(url_for('cargos'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("UPDATE cargo SET titulo = %s WHERE id_cargo = %s", (titulo, id_cargo))
+        conn.commit()
+        flash("Cargo actualizado correctamente.", "success")
+    except mysql.connector.Error as err:
+        flash(f"Error al actualizar el cargo: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('cargos'))
+
+
+@app.route('/eliminar-cargo/<int:id_cargo>', methods=['POST'])
+def eliminar_cargo(id_cargo):
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        return redirect(url_for('dashboard'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("DELETE FROM cargo WHERE id_cargo = %s", (id_cargo,))
+        conn.commit()
+        flash("Cargo eliminado exitosamente.", "warning")
+    except mysql.connector.Error as err:
+        flash("No se puede eliminar este cargo porque tiene colaboradores asignados.", "danger")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('cargos'))
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
