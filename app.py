@@ -125,6 +125,7 @@ def dashboard():
     cursor.close()
     conn.close()
 
+    # Se envían las listas nativas SIN json.dumps()
     return render_template(
         'dashboard.html',
         total_colaboradores=total_colaboradores,
@@ -133,10 +134,10 @@ def dashboard():
         asistencias_hoy=asistencias_hoy,
         mi_marcaje_hoy=mi_marcaje_hoy,
         marcajes_recientes=marcajes_recientes,
-        labels_dept=json.dumps(labels_dept),
-        values_dept=json.dumps(values_dept),
-        labels_permisos=json.dumps(labels_permisos),
-        values_permisos=json.dumps(values_permisos)
+        labels_dept=labels_dept,
+        values_dept=values_dept,
+        labels_permisos=labels_permisos,
+        values_permisos=values_permisos
     )
 
 

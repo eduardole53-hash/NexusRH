@@ -86,6 +86,9 @@
                                     <th>Hora Entrada</th>
                                     <th>Hora Salida</th>
                                     <th>Estado de Jornada</th>
+                                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                                        <th class="text-center">Acciones</th>
+                                    {% endif %}
                                 </tr>
                             </thead>
                             <tbody>
@@ -116,11 +119,46 @@
                                                 <span class="badge bg-info text-dark">Actualmente Laborando</span>
                                             {% endif %}
                                         </td>
+                                        {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ a.id_registro }}">
+                                                ✏️ Editar
+                                            </button>
+
+                                            <!-- Modal de Edición de Marcación -->
+                                            <div class="modal fade text-start" id="editModal{{ a.id_registro }}" tabindex="-1" aria-labelledby="editModalLabel{{ a.id_registro }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <form action="/editar-asistencia/{{ a.id_registro }}" method="POST">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="editModalLabel{{ a.id_registro }}">Editar Marcación ({{ a.fecha }})</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <div class="mb-3">
+                                                                    <label class="form-label fw-bold">Hora Entrada</label>
+                                                                    <input type="time" name="hora_entrada" class="form-control" value="{{ a.hora_entrada }}" required>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label class="form-label fw-bold">Hora Salida</label>
+                                                                    <input type="time" name="hora_salida" class="form-control" value="{{ a.hora_salida or '' }}">
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        {% endif %}
                                     </tr>
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">
+                                        <td colspan="{% if session.get('rol') in ['Administrador', 'RRHH'] %}5{% else %}4{% endif %}" class="text-center text-muted py-4">
                                             No se encontraron registros de asistencia para este colaborador.
                                         </td>
                                     </tr>
