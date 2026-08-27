@@ -4,6 +4,7 @@ from datetime import datetime, date
 from zoneinfo import ZoneInfo
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from dotenv import load_dotenv
+import json
 
 import csv
 from io import StringIO
@@ -16,12 +17,16 @@ app = Flask(__name__)
 app.secret_key = 'nexus_secreto_2026' 
 
 def get_db_connection():
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD", ""),
-        database=os.getenv("DB_NAME")
+    conn = mysql.connector.connect(
+        host='localhost',
+        user='root',
+        password='',
+        database='nexus_rh'
     )
+    cursor = conn.cursor()
+    cursor.execute("SET time_zone = '-05:00';")
+    cursor.close()
+    return conn
 
 # --- 1. RUTAS DE AUTENTICACIÓN ---
 @app.route('/')
@@ -57,97 +62,155 @@ def logout():
     session.clear() # Cierra la sesión
     return redirect(url_for('index'))
 
-# --- 2. RUTA DEL DASHBOARD ---
+# --- RUTA DE MARCAJE RÁPIDO Y DASHBOARD ---
 @app.route('/dashboard')
 def dashboard():
     if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
         return redirect(url_for('index'))
-    
+
+    usuario_id = session.get('usuario_id')
+
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    # 1. Obtener datos del usuario actual
-    cursor.execute("SELECT * FROM colaborador WHERE id_colaborador = %s", (session['usuario_id'],))
-    usuario = cursor.fetchone()
-    
-    # 2. Obtener el historial de asistencia (Admin ve todos, regular ve solo los suyos)
-    if session['rol'] == 'Administrador':
-        cursor.execute("""
-            SELECT r.*, c.nombre, c.apellido 
-            FROM registro_asistencia r
-            JOIN colaborador c ON r.id_colaborador = c.id_colaborador
-            ORDER BY r.fecha DESC, r.hora_entrada DESC
-        """)
-    else:
-        cursor.execute("""
-            SELECT r.*, c.nombre, c.apellido 
-            FROM registro_asistencia r
-            JOIN colaborador c ON r.id_colaborador = c.id_colaborador
-            WHERE r.id_colaborador = %s
-            ORDER BY r.fecha DESC, r.hora_entrada DESC
-        """, (session['usuario_id'],))
-        
-    historial = cursor.fetchall()
-    
+
+    # 1. Métricas de tarjetas superiores
+    cursor.execute("SELECT COUNT(*) AS total FROM colaborador")
+    total_colaboradores = cursor.fetchone()['total']
+
+    cursor.execute("SELECT COUNT(*) AS total FROM departamento")
+    total_departamentos = cursor.fetchone()['total']
+
+    cursor.execute("SELECT COUNT(*) AS total FROM solicitud_permiso WHERE estado = 'Pendiente'")
+    total_pendientes = cursor.fetchone()['total']
+
+    cursor.execute("SELECT COUNT(*) AS total FROM registro_asistencia WHERE fecha = CURDATE()")
+    asistencias_hoy = cursor.fetchone()['total']
+
+    # 2. Marcaje del usuario actual el día de hoy
+    cursor.execute("""
+        SELECT * FROM registro_asistencia 
+        WHERE id_colaborador = %s AND fecha = CURDATE() 
+        ORDER BY id_registro DESC LIMIT 1
+    """, (usuario_id,))
+    mi_marcaje_hoy = cursor.fetchone()
+
+    # 3. Lista de quiénes han marcado hoy (Últimos 5 registros)
+    cursor.execute("""
+        SELECT a.*, c.nombre, c.apellido, d.nombre AS departamento
+        FROM registro_asistencia a
+        JOIN colaborador c ON a.id_colaborador = c.id_colaborador
+        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+        WHERE a.fecha = CURDATE()
+        ORDER BY a.id_registro DESC LIMIT 5
+    """)
+    marcajes_recientes = cursor.fetchall()
+
+    # 4. Datos para los gráficos compactos
+    cursor.execute("""
+        SELECT COALESCE(d.nombre, 'Sin Depto') AS departamento, COUNT(c.id_colaborador) AS total
+        FROM colaborador c
+        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+        GROUP BY d.nombre
+    """)
+    dept_data = cursor.fetchall()
+    labels_dept = [row['departamento'] for row in dept_data]
+    values_dept = [row['total'] for row in dept_data]
+
+    cursor.execute("SELECT estado, COUNT(*) AS total FROM solicitud_permiso GROUP BY estado")
+    permisos_data = cursor.fetchall()
+    labels_permisos = [row['estado'] for row in permisos_data]
+    values_permisos = [row['total'] for row in permisos_data]
+
     cursor.close()
     conn.close()
-    
-    return render_template('dashboard.html', usuario=usuario, historial=historial)
 
-# --- 3. RUTAS DE ASISTENCIA ---
+    return render_template(
+        'dashboard.html',
+        total_colaboradores=total_colaboradores,
+        total_departamentos=total_departamentos,
+        total_pendientes=total_pendientes,
+        asistencias_hoy=asistencias_hoy,
+        mi_marcaje_hoy=mi_marcaje_hoy,
+        marcajes_recientes=marcajes_recientes,
+        labels_dept=json.dumps(labels_dept),
+        values_dept=json.dumps(values_dept),
+        labels_permisos=json.dumps(labels_permisos),
+        values_permisos=json.dumps(values_permisos)
+    )
+
+
 @app.route('/marcar-asistencia', methods=['POST'])
 def marcar_asistencia():
-    id_colaborador = request.form['id_colaborador']
-    zona_panama = ZoneInfo("America/Panama")
-    ahora_en_panama = datetime.now(zona_panama)
-    
-    hoy = ahora_en_panama.date()
-    hora_actual = ahora_en_panama.time()
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión.", "warning")
+        return redirect(url_for('index'))
+
+    usuario_id = session.get('usuario_id')
+    accion = request.form.get('accion')
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    
-    cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = %s", (id_colaborador, hoy))
-    registro = cursor.fetchone()
 
-    if not registro:
-        cursor.execute("""
-            INSERT INTO registro_asistencia (id_colaborador, fecha, hora_entrada, estado)
-            VALUES (%s, %s, %s, 'Regular')
-        """, (id_colaborador, hoy, hora_actual))
-        flash(f"✅ Entrada registrada exitosamente a las {hora_actual.strftime('%H:%M:%S')}", "success")
-    elif registro and registro['hora_salida'] is None:
-        cursor.execute("UPDATE registro_asistencia SET hora_salida = %s WHERE id_registro = %s", (hora_actual, registro['id_registro']))
-        flash(f"🚪 Salida registrada exitosamente a las {hora_actual.strftime('%H:%M:%S')}", "info")
-    else:
-        flash("⚠️ Ya has completado tu marcaje de entrada y salida para el día de hoy.", "warning")
+    try:
+        cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = CURDATE() ORDER BY id_registro DESC LIMIT 1", (usuario_id,))
+        registro = cursor.fetchone()
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        if accion == 'entrada':
+            if registro and registro['hora_salida'] is None:
+                flash("Ya tienes un turno de entrada activo hoy.", "warning")
+            else:
+                cursor.execute("""
+                    INSERT INTO registro_asistencia (id_colaborador, fecha, hora_entrada, estado)
+                    VALUES (%s, CURDATE(), CURTIME(), 'Presente')
+                """, (usuario_id,))
+                conn.commit()
+                flash("⏰ ¡Entrada registrada correctamente!", "success")
+
+        elif accion == 'salida':
+            if not registro or registro['hora_salida'] is not None:
+                flash("No tienes un registro de entrada pendiente de salida.", "warning")
+            else:
+                cursor.execute("""
+                    UPDATE registro_asistencia
+                    SET hora_salida = CURTIME()
+                    WHERE id_registro = %s
+                """, (registro['id_registro'],))
+                conn.commit()
+                flash("🚪 ¡Salida registrada correctamente!", "info")
+
+    except Exception as err:
+        flash(f"Error al registrar asistencia: {err}", "danger")
+    finally:
+        cursor.close()
+        conn.close()
 
     return redirect(url_for('dashboard'))
 
 # --- 4. RUTAS DE ADMINISTRACIÓN (EDITAR/ELIMINAR) ---
 @app.route('/editar-asistencia/<int:id_registro>', methods=['POST'])
 def editar_asistencia(id_registro):
-    if session.get('rol') != 'Administrador':
+    if session.get('rol') not in ['Administrador', 'RRHH']:
+        flash("No tienes permisos para realizar esta acción.", "danger")
         return redirect(url_for('dashboard'))
-        
+
     hora_entrada = request.form['hora_entrada']
     hora_salida = request.form.get('hora_salida')
     hora_salida = None if not hora_salida else hora_salida
 
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE registro_asistencia SET hora_entrada = %s, hora_salida = %s WHERE id_registro = %s", 
-                   (hora_entrada, hora_salida, id_registro))
+    cursor.execute("""
+        UPDATE registro_asistencia 
+        SET hora_entrada = %s, hora_salida = %s 
+        WHERE id_registro = %s
+    """, (hora_entrada, hora_salida, id_registro))
     conn.commit()
     cursor.close()
     conn.close()
-    
-    flash("Registro actualizado correctamente.", "success")
-    return redirect(url_for('dashboard'))
+
+    flash("Marcación actualizada correctamente.", "success")
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/eliminar-asistencia/<int:id_registro>', methods=['POST'])
 def eliminar_asistencia(id_registro):
@@ -847,6 +910,48 @@ def exportar_csv():
     finally:
         cursor.close()
         conn.close()
+
+@app.route('/colaborador/<int:id_colaborador>/asistencias')
+def historial_colaborador(id_colaborador):
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # 1. Obtener información detallada del colaborador
+        cursor.execute("""
+            SELECT 
+                c.*, 
+                d.nombre AS nombre_departamento, 
+                ca.titulo AS nombre_cargo
+            FROM colaborador c
+            LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+            LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+            WHERE c.id_colaborador = %s
+        """, (id_colaborador,))
+        colaborador = cursor.fetchone()
+
+        # 2. Obtener historial de marcajes de asistencia
+        cursor.execute("""
+            SELECT * 
+            FROM registro_asistencia 
+            WHERE id_colaborador = %s 
+            ORDER BY fecha DESC, hora_entrada DESC
+        """, (id_colaborador,))
+        asistencias = cursor.fetchall()
+
+    except Exception as err:
+        flash(f"Error al obtener el historial de asistencias: {err}", "danger")
+        colaborador = None
+        asistencias = []
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('asistencias_colaborador.html', colaborador=colaborador, asistencias=asistencias)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
