@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario de Ausentismo #{{ solicitud.id_solicitud }}</title>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.5; margin: 40px; }
+        .header { text-align: center; border-bottom: 2px solid #198754; padding-bottom: 15px; margin-bottom: 30px; }
+        .header h1 { color: #198754; margin: 0; font-size: 26px; font-weight: bold; }
+        .header p { margin: 5px 0 0; font-size: 14px; color: #666; }
+        .status-badge { text-align: center; margin-bottom: 30px; }
+        .status-badge span { background-color: #198754; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold; font-size: 14px; letter-spacing: 1px;}
+        .seccion { margin-bottom: 25px; }
+        .seccion-titulo { background-color: #f4f4f4; padding: 8px; font-weight: bold; font-size: 14px; border-left: 4px solid #198754; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        td { padding: 8px 0; font-size: 14px; vertical-align: top; }
+        .lbl { font-weight: bold; width: 35%; color: #555; }
+        .val { width: 65%; }
+        .motivo-box { border: 1px solid #ddd; padding: 15px; background-color: #f9f9f9; font-size: 14px; min-height: 80px; }
+        .firmas { margin-top: 80px; width: 100%; text-align: center; }
+        .firmas td { width: 50%; padding: 0 20px; }
+        .linea { border-top: 1px solid #333; margin-bottom: 10px; width: 80%; margin-left: auto; margin-right: auto; }
+        .firma-lbl { font-size: 13px; font-weight: bold; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>NEXUS RH</h1>
+        <p>Comprobante de Ausentismo Autorizado</p>
+    </div>
+
+    <div class="status-badge">
+        <span>SOLICITUD APROBADA</span>
+    </div>
+
+    <div class="seccion">
+        <div class="seccion-titulo">DATOS DEL COLABORADOR</div>
+        <table>
+            <tr>
+                <td class="lbl">Nombre Completo:</td>
+                <td class="val">{{ solicitud.nombre }} {{ solicitud.apellido }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Cédula / DNI:</td>
+                <td class="val">{{ solicitud.cedula }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Departamento / Cargo:</td>
+                <td class="val">{{ solicitud.departamento or 'N/A' }} - {{ solicitud.cargo or 'N/A' }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="seccion">
+        <div class="seccion-titulo">DETALLES DEL PERMISO</div>
+        <table>
+            <tr>
+                <td class="lbl">ID de Solicitud:</td>
+                <td class="val">#{{ solicitud.id_solicitud }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Tipo de Ausencia:</td>
+                <td class="val">{{ solicitud.tipo_permiso }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Fecha de Inicio:</td>
+                <td class="val">{{ solicitud.fecha_inicio.strftime('%d/%m/%Y') }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Fecha de Fin:</td>
+                <td class="val">{{ solicitud.fecha_fin.strftime('%d/%m/%Y') }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="seccion">
+        <div class="seccion-titulo">JUSTIFICACIÓN / MOTIVO</div>
+        <div class="motivo-box">
+            {{ solicitud.motivo }}
+        </div>
+    </div>
+
+    <table class="firmas">
+        <tr>
+            <td>
+                <div class="linea"></div>
+                <div class="firma-lbl">Firma del Colaborador</div>
+            </td>
+            <td>
+                <div class="linea"></div>
+                <div class="firma-lbl">Aprobación (Supervisor / RRHH)</div>
+                <div style="font-size: 11px; color: #777; margin-top: 5px;">Aprobado electrónicamente en el sistema</div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

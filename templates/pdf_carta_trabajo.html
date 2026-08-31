@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Carta de Trabajo - {{ colaborador.nombre }} {{ colaborador.apellido }}</title>
+    <style>
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 40px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #0d42ff;
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            color: #0d42ff;
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .header p {
+            margin: 5px 0 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .fecha {
+            text-align: right;
+            margin-bottom: 40px;
+            font-size: 15px;
+        }
+        .contenido {
+            text-align: justify;
+            font-size: 16px;
+            margin-bottom: 60px;
+        }
+        .firma-container {
+            text-align: center;
+            margin-top: 100px;
+        }
+        .linea-firma {
+            border-top: 1px solid #333;
+            width: 300px;
+            margin: 0 auto 10px auto;
+        }
+        .firma-nombre {
+            font-weight: bold;
+            margin: 0;
+        }
+        .firma-cargo {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>NEXUS RH</h1>
+        <p>Departamento de Recursos Humanos</p>
+        <p>Ciudad de Panamá, Panamá</p>
+    </div>
+
+    <div class="fecha">
+        Panamá, {{ fecha_actual.strftime('%d/%m/%Y') }}
+    </div>
+
+    <div class="contenido">
+        <p><strong>A QUIEN CORRESPONDA:</strong></p>
+        <br>
+        <p>
+            Por medio de la presente, certificamos formalmente que el/la señor(a) <strong>{{ colaborador.nombre }} {{ colaborador.apellido }}</strong>, 
+            portador(a) del documento de identidad personal (Cédula) N° <strong>{{ colaborador.cedula }}</strong>, 
+            labora para nuestra empresa desempeñando el cargo de <strong>{{ colaborador.cargo or 'Sin Asignar' }}</strong> 
+            en el departamento de <strong>{{ colaborador.departamento or 'Sin Asignar' }}</strong>.
+        </p>
+        <p>
+            El/La colaborador(a) inició sus labores en nuestra institución el día <strong>{{ colaborador.fecha_ingreso.strftime('%d/%m/%Y') }}</strong>, 
+            manteniendo a la fecha un contrato de trabajo por tiempo indefinido con un salario base mensual de 
+            <strong>${{ "{:,.2f}".format(colaborador.salario) }}</strong>.
+        </p>
+        <p>
+            Se expide la presente certificación a solicitud de la parte interesada, para los fines que estime convenientes.
+        </p>
+    </div>
+
+    <div class="firma-container">
+        <div class="linea-firma"></div>
+        <p class="firma-nombre">Gerencia de Recursos Humanos</p>
+        <p class="firma-cargo">NEXUS RH</p>
+    </div>
+</body>
+</html>

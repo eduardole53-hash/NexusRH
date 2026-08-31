@@ -101,7 +101,13 @@
                                                     <button type="submit" class="btn btn-sm btn-danger fw-bold">✕ Rechazar</button>
                                                 </form>
                                             {% else %}
-                                                <span class="text-muted small">Procesado</span>
+                                                {% if item.estado == 'Aprobado' %}
+                                                    <a href="/descargar-permiso/{{ item.id_solicitud }}" class="btn btn-sm btn-outline-success fw-bold" title="Descargar Comprobante">
+                                                        📥 PDF
+                                                    </a>
+                                                {% elif item.estado == 'Rechazado' %}
+                                                    <span class="badge bg-light text-muted border">Denegado</span>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                         {% endif %}

@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from dotenv import load_dotenv
 import json
+import pdfkit
+from flask import make_response, render_template_string
 
 import csv
 from io import StringIO
@@ -953,6 +955,107 @@ def historial_colaborador(id_colaborador):
         conn.close()
 
     return render_template('asistencias_colaborador.html', colaborador=colaborador, asistencias=asistencias)
+
+@app.route('/descargar-carta-trabajo')
+def descargar_carta_trabajo():
+    if 'usuario_id' not in session:
+        return redirect(url_for('index'))
+
+    usuario_id = session.get('usuario_id')
+    
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Obtener datos del colaborador
+    cursor.execute("""
+        SELECT c.*, d.nombre AS departamento, ca.titulo AS cargo 
+        FROM colaborador c
+        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+        LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+        WHERE c.id_colaborador = %s
+    """, (usuario_id,))
+    colaborador = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+
+    if not colaborador:
+        flash("No se encontraron datos del colaborador.", "danger")
+        return redirect(url_for('dashboard'))
+
+    # Renderizar la plantilla HTML a texto
+    html_renderizado = render_template('pdf_carta_trabajo.html', colaborador=colaborador, fecha_actual=date.today())
+
+    # Configurar opciones de pdfkit para evitar errores con Bootstrap
+    opciones = {
+        'page-size': 'Letter',
+        'margin-top': '0.75in',
+        'margin-right': '0.75in',
+        'margin-bottom': '0.75in',
+        'margin-left': '0.75in',
+        'encoding': 'UTF-8',
+        'enable-local-file-access': None
+    }
+
+    # Convertir HTML a PDF
+    pdf = pdfkit.from_string(html_renderizado, False, options=opciones)
+
+    # Crear la respuesta HTTP para forzar la descarga
+    respuesta = make_response(pdf)
+    respuesta.headers['Content-Type'] = 'application/pdf'
+    respuesta.headers['Content-Disposition'] = f'attachment; filename=Carta_Trabajo_{colaborador["nombre"]}_{colaborador["apellido"]}.pdf'
+    
+    return respuesta
+
+@app.route('/descargar-permiso/<int:id_solicitud>')
+def descargar_permiso(id_solicitud):
+    if 'usuario_id' not in session:
+        return redirect(url_for('index'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Obtener datos de la solicitud unidos con los del colaborador
+    cursor.execute("""
+        SELECT p.*, c.nombre, c.apellido, c.cedula, d.nombre AS departamento, ca.titulo AS cargo
+        FROM solicitud_permiso p
+        JOIN colaborador c ON p.id_colaborador = c.id_colaborador
+        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+        LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+        WHERE p.id_solicitud = %s
+    """, (id_solicitud,))
+    solicitud = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+
+    # Validar que exista y esté aprobada
+    if not solicitud or solicitud['estado'] != 'Aprobado':
+        flash("La solicitud no existe o aún no ha sido aprobada.", "warning")
+        return redirect(url_for('permisos'))
+
+    # Renderizar la plantilla a texto
+    html_renderizado = render_template('pdf_permiso.html', solicitud=solicitud, fecha_actual=date.today())
+
+    opciones = {
+        'page-size': 'Letter',
+        'margin-top': '0.75in',
+        'margin-right': '0.75in',
+        'margin-bottom': '0.75in',
+        'margin-left': '0.75in',
+        'encoding': 'UTF-8',
+        'enable-local-file-access': None
+    }
+
+    # Convertir a PDF
+    pdf = pdfkit.from_string(html_renderizado, False, options=opciones)
+
+    # Forzar descarga
+    respuesta = make_response(pdf)
+    respuesta.headers['Content-Type'] = 'application/pdf'
+    respuesta.headers['Content-Disposition'] = f'attachment; filename=Permiso_{id_solicitud}_{solicitud["nombre"]}_{solicitud["apellido"]}.pdf'
+    
+    return respuesta
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
