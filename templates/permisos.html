@@ -16,18 +16,44 @@
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- Sidebar (Menú Lateral Universal) -->
             <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
                 <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
                 <hr>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
-                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
-                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
-                    <li class="nav-item"><a href="/cargos">💼 Cargos</a></li>
-                    <li class="nav-item"><a href="/permisos" class="active">🏝️ Permisos / Vacaciones</a></li>
-                    <li class="nav-item"><a href="/reportes">📈 Reportes</a></li>
-                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                    <li class="nav-item">
+                        <a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %}">📊 Panel General</a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/colaboradores" class="{% if request.path == '/colaboradores' %}active{% endif %}">👥 Colaboradores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/departamentos" class="{% if request.path == '/departamentos' %}active{% endif %}">🏢 Departamentos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/cargos" class="{% if request.path == '/cargos' %}active{% endif %}">💼 Cargos</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a href="/permisos" class="{% if request.path == '/permisos' %}active{% endif %}">🏝️ Permisos / Vacaciones</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="/colaborador/{{ session.get('usuario_id') }}/asistencias" class="{% if 'asistencias' in request.path %}active{% endif %}">⏰ Mi Asistencia</a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/reportes" class="{% if request.path == '/reportes' %}active{% endif %}">📈 Reportes</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item mt-5">
+                        <a href="/logout" class="text-danger">🚪 Cerrar Sesión</a>
+                    </li>
                 </ul>
             </div>
 

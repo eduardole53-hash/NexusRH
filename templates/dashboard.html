@@ -11,47 +11,71 @@
         .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
         .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
         .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
-        .card-metric { border: none; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
         .chart-container { position: relative; height: 180px; width: 100%; }
         .clock-display { font-family: 'Courier New', Courier, monospace; letter-spacing: 1px; }
+        /* Estilos específicos para el Panel del Empleado */
+        .employee-banner { background: linear-gradient(135deg, #0d42ff 0%, #0056b3 100%); color: white; border-radius: 12px; padding: 25px; }
+        .emp-card { text-align: center; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .emp-card h4 { font-weight: bold; margin-bottom: 2px; }
+        .emp-card small { font-weight: 600; color: #6c757d; }
+        .quick-action-card { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background: white; border-radius: 10px; border: 1px solid #e9ecef; text-decoration: none; color: #333; font-weight: bold; transition: all 0.2s;}
+        .quick-action-card:hover { border-color: #0d42ff; color: #0d42ff; }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
+            <!-- Sidebar (Menú Lateral) -->
+            <!-- Sidebar (Menú Lateral Universal) -->
             <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
                 <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
                 <hr>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a href="/dashboard" class="active">📊 Panel General</a></li>
-                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
-                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
-                    <li class="nav-item"><a href="/cargos">💼 Cargos</a></li>
-                    <li class="nav-item"><a href="/permisos">🏝️ Permisos / Vacaciones</a></li>
-                    <li class="nav-item"><a href="/reportes">📈 Reportes</a></li>
-                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
+                    <li class="nav-item">
+                        <a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %}">📊 Panel General</a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/colaboradores" class="{% if request.path == '/colaboradores' %}active{% endif %}">👥 Colaboradores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/departamentos" class="{% if request.path == '/departamentos' %}active{% endif %}">🏢 Departamentos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/cargos" class="{% if request.path == '/cargos' %}active{% endif %}">💼 Cargos</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a href="/permisos" class="{% if request.path == '/permisos' %}active{% endif %}">🏝️ Permisos / Vacaciones</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="/colaborador/{{ session.get('usuario_id') }}/asistencias" class="{% if 'asistencias' in request.path %}active{% endif %}">⏰ Mi Asistencia</a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/reportes" class="{% if request.path == '/reportes' %}active{% endif %}">📈 Reportes</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item mt-5">
+                        <a href="/logout" class="text-danger">🚪 Cerrar Sesión</a>
+                    </li>
                 </ul>
             </div>
 
             <!-- Contenido Principal -->
             <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-3">
-                
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="fw-bold text-dark mb-0">Panel General</h2>
-                    <div>
-                        <a href="/descargar-carta-trabajo" class="btn btn-sm btn-outline-primary me-2">
-                            📄 Descargar Carta de Trabajo
-                        </a>
-                        <span class="badge bg-primary px-3 py-2">Usuario: {{ session.get('nombre') }} {{ session.get('apellido') }} ({{ session.get('rol') }})</span>
-                    </div>
-                </div>
 
                 <!-- Mensajes Flash -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold py-2" role="alert">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold py-2 mt-2" role="alert">
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
@@ -59,59 +83,44 @@
                     {% endif %}
                 {% endwith %}
 
+                <!-- ========================================== -->
+                <!-- VISTA ADMINISTRADOR / RRHH                 -->
+                <!-- ========================================== -->
+                {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="fw-bold text-dark mb-0">Panel General</h2>
+                    <div>
+                        <a href="/descargar-carta-trabajo" class="btn btn-sm btn-outline-primary me-2">📄 Descargar Carta de Trabajo</a>
+                        <span class="badge bg-primary px-3 py-2">Usuario: {{ session.get('nombre') }} {{ session.get('apellido') }} ({{ session.get('rol') }})</span>
+                    </div>
+                </div>
+
                 <!-- Tarjetas de Métricas Rápidas -->
                 <div class="row g-2 mb-3">
-                    <div class="col-md-3">
-                        <div class="card card-metric p-3 bg-white">
-                            <small class="text-muted fw-bold">COLABORADORES</small>
-                            <h3 class="fw-bold text-primary mb-0">{{ total_colaboradores }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card card-metric p-3 bg-white">
-                            <small class="text-muted fw-bold">DEPARTAMENTOS</small>
-                            <h3 class="fw-bold text-success mb-0">{{ total_departamentos }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card card-metric p-3 bg-white">
-                            <small class="text-muted fw-bold">ASISTENCIAS HOY</small>
-                            <h3 class="fw-bold text-info mb-0">{{ asistencias_hoy }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card card-metric p-3 bg-white">
-                            <small class="text-muted fw-bold">PERMISOS PENDIENTES</small>
-                            <h3 class="fw-bold text-warning mb-0">{{ total_pendientes }}</h3>
-                        </div>
-                    </div>
+                    <div class="col-md-3"><div class="card card-metric p-3 bg-white"><small class="text-muted fw-bold">COLABORADORES</small><h3 class="fw-bold text-primary mb-0">{{ total_colaboradores }}</h3></div></div>
+                    <div class="col-md-3"><div class="card card-metric p-3 bg-white"><small class="text-muted fw-bold">DEPARTAMENTOS</small><h3 class="fw-bold text-success mb-0">{{ total_departamentos }}</h3></div></div>
+                    <div class="col-md-3"><div class="card card-metric p-3 bg-white"><small class="text-muted fw-bold">ASISTENCIAS HOY</small><h3 class="fw-bold text-info mb-0">{{ asistencias_hoy }}</h3></div></div>
+                    <div class="col-md-3"><div class="card card-metric p-3 bg-white"><small class="text-muted fw-bold">PERMISOS PENDIENTES</small><h3 class="fw-bold text-warning mb-0">{{ total_pendientes }}</h3></div></div>
                 </div>
 
                 <!-- Bloque Central: Marcaje Personal + Últimos Marcajes -->
                 <div class="row g-3 mb-3">
-                    <!-- Tarjeta de Marcaje del Usuario Logueado -->
                     <div class="col-md-4">
                         <div class="card card-metric p-3 bg-white text-center h-100">
                             <h6 class="fw-bold text-secondary mb-2">Mi Reloj Checador</h6>
-                            
-                            <!-- Reloj Digital y Fecha en Vivo -->
                             <div class="p-2 mb-3 bg-light rounded border">
                                 <div id="relojEnVivo" class="fs-3 fw-bold text-primary clock-display">00:00:00</div>
                                 <div id="fechaEnVivo" class="text-muted small fw-semibold">--/--/----</div>
                             </div>
-                            
                             {% if mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is none %}
-                                <div class="alert alert-success py-1 mb-2">
-                                    <small>Entrada: <strong>{{ mi_marcaje_hoy.hora_entrada }}</strong></small>
-                                </div>
+                                <div class="alert alert-success py-1 mb-2"><small>Entrada: <strong>{{ mi_marcaje_hoy.hora_entrada }}</strong></small></div>
                                 <form action="/marcar-asistencia" method="POST">
                                     <input type="hidden" name="accion" value="salida">
                                     <button type="submit" class="btn btn-danger w-100 fw-bold">🔴 Registrar Salida</button>
                                 </form>
                             {% elif mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is not none %}
-                                <div class="alert alert-secondary py-1 mb-2">
-                                    <small>Jornada completada hoy</small>
-                                </div>
+                                <div class="alert alert-secondary py-1 mb-2"><small>Jornada completada hoy</small></div>
                                 <button class="btn btn-outline-secondary w-100" disabled>Turno Finalizado</button>
                             {% else %}
                                 <p class="text-muted small mb-2">Aún no has registrado tu entrada hoy.</p>
@@ -123,20 +132,12 @@
                         </div>
                     </div>
 
-                    <!-- Tabla de Marcajes Recientes del Día -->
                     <div class="col-md-8">
                         <div class="card card-metric p-3 bg-white h-100">
                             <h6 class="fw-bold text-secondary mb-2">Marcajes Recientes de Hoy</h6>
                             <div class="table-responsive">
                                 <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.88rem;">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th>Colaborador</th>
-                                            <th>Departamento</th>
-                                            <th>Entrada</th>
-                                            <th>Salida</th>
-                                        </tr>
-                                    </thead>
+                                    <thead class="table-light"><tr><th>Colaborador</th><th>Departamento</th><th>Entrada</th><th>Salida</th></tr></thead>
                                     <tbody>
                                         {% if marcajes_recientes %}
                                             {% for m in marcajes_recientes %}
@@ -144,19 +145,11 @@
                                                 <td class="fw-bold">{{ m.nombre }} {{ m.apellido }}</td>
                                                 <td>{{ m.departamento if m.departamento else 'Sin Dpto' }}</td>
                                                 <td><span class="badge bg-success-subtle text-success">{{ m.hora_entrada }}</span></td>
-                                                <td>
-                                                    {% if m.hora_salida %}
-                                                        <span class="badge bg-danger-subtle text-danger">{{ m.hora_salida }}</span>
-                                                    {% else %}
-                                                        <span class="badge bg-warning text-dark">En Turno</span>
-                                                    {% endif %}
-                                                </td>
+                                                <td>{% if m.hora_salida %}<span class="badge bg-danger-subtle text-danger">{{ m.hora_salida }}</span>{% else %}<span class="badge bg-warning text-dark">En Turno</span>{% endif %}</td>
                                             </tr>
                                             {% endfor %}
                                         {% else %}
-                                            <tr>
-                                                <td colspan="4" class="text-center text-muted py-2">Sin marcajes registrados el día de hoy.</td>
-                                            </tr>
+                                            <tr><td colspan="4" class="text-center text-muted py-2">Sin marcajes registrados el día de hoy.</td></tr>
                                         {% endif %}
                                     </tbody>
                                 </table>
@@ -165,98 +158,238 @@
                     </div>
                 </div>
 
-                <!-- Sección de Gráficos Compactos -->
                 <div class="row g-3">
                     <div class="col-md-7">
-                        <div class="card card-metric p-3 bg-white">
-                            <h6 class="fw-bold text-secondary mb-2">Personal por Departamento</h6>
-                            <div class="chart-container">
-                                <canvas id="chartDepartamentos"></canvas>
-                            </div>
-                        </div>
+                        <div class="card card-metric p-3 bg-white"><h6 class="fw-bold text-secondary mb-2">Personal por Departamento</h6><div class="chart-container"><canvas id="chartDepartamentos"></canvas></div></div>
                     </div>
                     <div class="col-md-5">
-                        <div class="card card-metric p-3 bg-white">
-                            <h6 class="fw-bold text-secondary mb-2">Estado de Permisos y Vacaciones</h6>
-                            <div class="chart-container">
-                                <canvas id="chartPermisos"></canvas>
-                            </div>
+                        <div class="card card-metric p-3 bg-white"><h6 class="fw-bold text-secondary mb-2">Estado de Permisos y Vacaciones</h6><div class="chart-container"><canvas id="chartPermisos"></canvas></div></div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- VISTA EMPLEADO REGULAR                     -->
+                <!-- ========================================== -->
+                {% else %}
+                
+                <!-- Banner de Bienvenida -->
+                <div class="employee-banner d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold mb-0">Bienvenido, {{ session.get('nombre') }} {{ session.get('apellido') }}</h2>
+                    <div class="text-end">
+                        <span class="badge bg-light text-primary px-3 py-2 fs-6 mb-2">ID: {{ session.get('usuario_id') }}</span><br>
+                        <a href="/descargar-carta-trabajo" class="btn btn-sm btn-outline-light">📄 Carta de Trabajo</a>
+                    </div>
+                </div>
+
+                <!-- 4 Tarjetas Superiores -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="emp-card">
+                            <small>🌴 Días de Vacaciones</small>
+                            <h4 class="text-success mt-2">{{ dias_vacaciones }}</h4>
+                            <small class="text-success">Disponibles</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="emp-card">
+                            <small>🧾 Mis Solicitudes</small>
+                            <h4 class="text-warning mt-2">{{ mis_pendientes }}</h4>
+                            <small class="text-warning">Pendientes</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="emp-card">
+                            <small>⏱️ Horas Trabajadas</small>
+                            <h4 class="text-primary mt-2">{{ horas_semana }} hrs</h4>
+                            <small>Esta Semana</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="emp-card">
+                            <small>📅 Próxima Evaluación</small>
+                            <h4 class="text-dark mt-2" style="font-size: 1.1rem;">27 de enero</h4>
+                            <small>2:30 p.m.</small>
                         </div>
                     </div>
                 </div>
 
+                <!-- Gráfico de Asistencia y Lista de Solicitudes -->
+                <div class="row g-3 mb-4">
+                    
+                    <!-- Mi Asistencia y Reloj Checador -->
+                    <div class="col-md-6">
+                        <div class="card card-metric p-4 bg-white h-100">
+                            <h5 class="fw-bold text-dark mb-3">Mi Asistencia (Semana Actual)</h5>
+                            
+                            <!-- Reloj de Marcaje Integrado -->
+                            <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded border mb-4">
+                                <div>
+                                    <div id="relojEnVivo" class="fs-4 fw-bold text-primary clock-display">00:00:00</div>
+                                    <div id="fechaEnVivo" class="text-muted small fw-semibold">--/--/----</div>
+                                </div>
+                                <div>
+                                    {% if mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is none %}
+                                        <span class="badge bg-success mb-1">En Turno: {{ mi_marcaje_hoy.hora_entrada }}</span>
+                                        <form action="/marcar-asistencia" method="POST" class="m-0">
+                                            <input type="hidden" name="accion" value="salida">
+                                            <button type="submit" class="btn btn-sm btn-danger fw-bold">🔴 Salida</button>
+                                        </form>
+                                    {% elif mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is not none %}
+                                        <button class="btn btn-sm btn-outline-secondary" disabled>Turno Finalizado</button>
+                                    {% else %}
+                                        <form action="/marcar-asistencia" method="POST" class="m-0">
+                                            <input type="hidden" name="accion" value="entrada">
+                                            <button type="submit" class="btn btn-sm btn-success fw-bold">🟢 Entrada</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div style="height: 180px; width: 100%;">
+                                <canvas id="chartAsistenciaEmpleado"></canvas>
+                            </div>
+                            <a href="/colaborador/{{ session.get('usuario_id') }}/asistencias" class="btn btn-primary w-100 mt-3 fw-bold">Ver detalles ></a>
+                        </div>
+                    </div>
+
+                    <!-- Mis Solicitudes -->
+                    <div class="col-md-6">
+                        <div class="card card-metric p-4 bg-white h-100">
+                            <h5 class="fw-bold text-dark mb-4">Mis Solicitudes Recientes</h5>
+                            
+                            <ul class="list-group list-group-flush mb-4">
+                                {% if mis_solicitudes %}
+                                    {% for sol in mis_solicitudes %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <div>
+                                            <h6 class="mb-1 fw-bold">{{ sol.tipo_permiso }}</h6>
+                                            <small class="text-muted">
+                                                {% if sol.estado == 'Pendiente' %} ⏳ En revisión
+                                                {% elif sol.estado == 'Aprobado' %} ✅ Aprobado
+                                                {% else %} ❌ Rechazado {% endif %}
+                                                - {{ sol.fecha_inicio.strftime('%d de %b') }}
+                                            </small>
+                                        </div>
+                                        {% if sol.estado == 'Aprobado' %}
+                                            <span class="text-success fs-5">✔️</span>
+                                        {% elif sol.estado == 'Pendiente' %}
+                                            <span class="text-warning fs-5">⬇️</span>
+                                        {% else %}
+                                            <span class="text-danger fs-5">✖️</span>
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                {% else %}
+                                    <li class="list-group-item text-muted text-center py-4">No tienes solicitudes recientes.</li>
+                                {% endif %}
+                            </ul>
+                            
+                            <a href="/permisos" class="btn btn-primary w-100 fw-bold mt-auto">Nueva solicitud ></a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción Rápida -->
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="/permisos" class="quick-action-card">
+                            <span class="fs-5">🌴 Solicitar Vacaciones</span>
+                            <span class="fs-5">></span>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="#" class="quick-action-card">
+                            <span class="fs-5">🧾 Descargar Recibo de Nómina</span>
+                            <span class="fs-5">></span>
+                        </a>
+                    </div>
+                </div>
+                
+                {% endif %}
+                <!-- ========================================== -->
+                <!-- FIN VISTAS DINÁMICAS                       -->
+                <!-- ========================================== -->
             </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-     <script>
-    // Reloj Digital y Fecha en Vivo
-    document.addEventListener('DOMContentLoaded', function() {
-        function actualizarReloj() {
-            const ahora = new Date();
-            const horas = String(ahora.getHours()).padStart(2, '0');
-            const minutos = String(ahora.getMinutes()).padStart(2, '0');
-            const segundos = String(ahora.getSeconds()).padStart(2, '0');
-            
-            const relojEl = document.getElementById('relojEnVivo');
-            if (relojEl) {
-                relojEl.textContent = `${horas}:${minutos}:${segundos}`;
+    <!-- Script Consolidado -->
+    <script>
+        // Función Global del Reloj
+        document.addEventListener('DOMContentLoaded', function() {
+            function actualizarReloj() {
+                const ahora = new Date();
+                const horas = String(ahora.getHours()).padStart(2, '0');
+                const minutos = String(ahora.getMinutes()).padStart(2, '0');
+                const segundos = String(ahora.getSeconds()).padStart(2, '0');
+                
+                const relojEl = document.getElementById('relojEnVivo');
+                if (relojEl) relojEl.textContent = `${horas}:${minutos}:${segundos}`;
+
+                const fechaEl = document.getElementById('fechaEnVivo');
+                if (fechaEl) {
+                    const opciones = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+                    fechaEl.textContent = ahora.toLocaleDateString('es-ES', opciones);
+                }
+            }
+            setInterval(actualizarReloj, 1000);
+            actualizarReloj();
+        });
+
+        // ------------------------------------------------------------------
+        // Gráficos para Administradores
+        // ------------------------------------------------------------------
+        {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+            const labelsDept = JSON.parse('{{ labels_dept | tojson | safe }}');
+            const valuesDept = JSON.parse('{{ values_dept | tojson | safe }}');
+            const labelsPermisos = JSON.parse('{{ labels_permisos | tojson | safe }}');
+            const valuesPermisos = JSON.parse('{{ values_permisos | tojson | safe }}');
+
+            if(document.getElementById('chartDepartamentos')){
+                new Chart(document.getElementById('chartDepartamentos').getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: labelsDept, datasets: [{ data: valuesDept, backgroundColor: '#0d42ff', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                });
             }
 
-            const fechaEl = document.getElementById('fechaEnVivo');
-            if (fechaEl) {
-                const opciones = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-                fechaEl.textContent = ahora.toLocaleDateString('es-ES', opciones);
+            if(document.getElementById('chartPermisos')){
+                new Chart(document.getElementById('chartPermisos').getContext('2d'), {
+                    type: 'doughnut',
+                    data: { labels: labelsPermisos, datasets: [{ data: valuesPermisos, backgroundColor: ['#ffc107', '#198754', '#dc3545'] }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                });
             }
-        }
-        setInterval(actualizarReloj, 1000);
-        actualizarReloj();
-    });
+        
+        // ------------------------------------------------------------------
+        // Gráficos para Empleados Regulares
+        // ------------------------------------------------------------------
+        {% else %}
+            const lblsAsistencia = JSON.parse('{{ labels_asistencia | tojson | safe }}');
+            const valsAsistencia = JSON.parse('{{ values_asistencia | tojson | safe }}');
 
-    // Parseo seguro garantizando arreglos de JavaScript
-    const labelsDept = JSON.parse('{{ labels_dept | tojson | safe }}');
-    const valuesDept = JSON.parse('{{ values_dept | tojson | safe }}');
-    const labelsPermisos = JSON.parse('{{ labels_permisos | tojson | safe }}');
-    const valuesPermisos = JSON.parse('{{ values_permisos | tojson | safe }}');
-
-    // Gráfico de Barras - Departamentos
-    new Chart(document.getElementById('chartDepartamentos').getContext('2d'), {
-        type: 'bar',
-        data: {
-            labels: typeof labelsDept === 'string' ? JSON.parse(labelsDept) : labelsDept,
-            datasets: [{
-                label: 'Personal',
-                data: typeof valuesDept === 'string' ? JSON.parse(valuesDept) : valuesDept,
-                backgroundColor: '#0d42ff',
-                borderRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-        }
-    });
-
-    // Gráfico Donut - Estado de Permisos
-    new Chart(document.getElementById('chartPermisos').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: typeof labelsPermisos === 'string' ? JSON.parse(labelsPermisos) : labelsPermisos,
-            datasets: [{
-                data: typeof valuesPermisos === 'string' ? JSON.parse(valuesPermisos) : valuesPermisos,
-                backgroundColor: ['#ffc107', '#198754', '#dc3545']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'right' } }
-        }
-    });
-</script>
+            if(document.getElementById('chartAsistenciaEmpleado')){
+                new Chart(document.getElementById('chartAsistenciaEmpleado').getContext('2d'), {
+                    type: 'bar',
+                    data: { 
+                        labels: lblsAsistencia, 
+                        datasets: [{ 
+                            label: 'Horas', 
+                            data: valsAsistencia, 
+                            backgroundColor: '#0d42ff', 
+                            borderRadius: 2 
+                        }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }, 
+                        scales: { y: { beginAtZero: true, max: 12, ticks: { stepSize: 4 } } } 
+                    }
+                });
+            }
+        {% endif %}
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

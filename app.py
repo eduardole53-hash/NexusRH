@@ -72,75 +72,101 @@ def dashboard():
         return redirect(url_for('index'))
 
     usuario_id = session.get('usuario_id')
+    rol = session.get('rol')
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # 1. Métricas de tarjetas superiores
-    cursor.execute("SELECT COUNT(*) AS total FROM colaborador")
-    total_colaboradores = cursor.fetchone()['total']
+    # ---------------------------------------------------------
+    # VISTA PARA ADMINISTRADORES Y RRHH
+    # ---------------------------------------------------------
+    if rol in ['Administrador', 'RRHH']:
+        cursor.execute("SELECT COUNT(*) AS total FROM colaborador")
+        total_colaboradores = cursor.fetchone()['total']
 
-    cursor.execute("SELECT COUNT(*) AS total FROM departamento")
-    total_departamentos = cursor.fetchone()['total']
+        cursor.execute("SELECT COUNT(*) AS total FROM departamento")
+        total_departamentos = cursor.fetchone()['total']
 
-    cursor.execute("SELECT COUNT(*) AS total FROM solicitud_permiso WHERE estado = 'Pendiente'")
-    total_pendientes = cursor.fetchone()['total']
+        cursor.execute("SELECT COUNT(*) AS total FROM solicitud_permiso WHERE estado = 'Pendiente'")
+        total_pendientes = cursor.fetchone()['total']
 
-    cursor.execute("SELECT COUNT(*) AS total FROM registro_asistencia WHERE fecha = CURDATE()")
-    asistencias_hoy = cursor.fetchone()['total']
+        cursor.execute("SELECT COUNT(*) AS total FROM registro_asistencia WHERE fecha = CURDATE()")
+        asistencias_hoy = cursor.fetchone()['total']
 
-    # 2. Marcaje del usuario actual el día de hoy
-    cursor.execute("""
-        SELECT * FROM registro_asistencia 
-        WHERE id_colaborador = %s AND fecha = CURDATE() 
-        ORDER BY id_registro DESC LIMIT 1
-    """, (usuario_id,))
-    mi_marcaje_hoy = cursor.fetchone()
+        cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = CURDATE() ORDER BY id_registro DESC LIMIT 1", (usuario_id,))
+        mi_marcaje_hoy = cursor.fetchone()
 
-    # 3. Lista de quiénes han marcado hoy (Últimos 5 registros)
-    cursor.execute("""
-        SELECT a.*, c.nombre, c.apellido, d.nombre AS departamento
-        FROM registro_asistencia a
-        JOIN colaborador c ON a.id_colaborador = c.id_colaborador
-        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
-        WHERE a.fecha = CURDATE()
-        ORDER BY a.id_registro DESC LIMIT 5
-    """)
-    marcajes_recientes = cursor.fetchall()
+        cursor.execute("""
+            SELECT a.*, c.nombre, c.apellido, d.nombre AS departamento
+            FROM registro_asistencia a
+            JOIN colaborador c ON a.id_colaborador = c.id_colaborador
+            LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+            WHERE a.fecha = CURDATE()
+            ORDER BY a.id_registro DESC LIMIT 5
+        """)
+        marcajes_recientes = cursor.fetchall()
 
-    # 4. Datos para los gráficos compactos
-    cursor.execute("""
-        SELECT COALESCE(d.nombre, 'Sin Depto') AS departamento, COUNT(c.id_colaborador) AS total
-        FROM colaborador c
-        LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
-        GROUP BY d.nombre
-    """)
-    dept_data = cursor.fetchall()
-    labels_dept = [row['departamento'] for row in dept_data]
-    values_dept = [row['total'] for row in dept_data]
+        cursor.execute("""
+            SELECT COALESCE(d.nombre, 'Sin Depto') AS departamento, COUNT(c.id_colaborador) AS total
+            FROM colaborador c
+            LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+            GROUP BY d.nombre
+        """)
+        dept_data = cursor.fetchall()
+        labels_dept = [row['departamento'] for row in dept_data]
+        values_dept = [row['total'] for row in dept_data]
 
-    cursor.execute("SELECT estado, COUNT(*) AS total FROM solicitud_permiso GROUP BY estado")
-    permisos_data = cursor.fetchall()
-    labels_permisos = [row['estado'] for row in permisos_data]
-    values_permisos = [row['total'] for row in permisos_data]
+        cursor.execute("SELECT estado, COUNT(*) AS total FROM solicitud_permiso GROUP BY estado")
+        permisos_data = cursor.fetchall()
+        labels_permisos = [row['estado'] for row in permisos_data]
+        values_permisos = [row['total'] for row in permisos_data]
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
 
-    # Se envían las listas nativas SIN json.dumps()
-    return render_template(
-        'dashboard.html',
-        total_colaboradores=total_colaboradores,
-        total_departamentos=total_departamentos,
-        total_pendientes=total_pendientes,
-        asistencias_hoy=asistencias_hoy,
-        mi_marcaje_hoy=mi_marcaje_hoy,
-        marcajes_recientes=marcajes_recientes,
-        labels_dept=labels_dept,
-        values_dept=values_dept,
-        labels_permisos=labels_permisos,
-        values_permisos=values_permisos
-    )
+        return render_template('dashboard.html',
+            total_colaboradores=total_colaboradores, total_departamentos=total_departamentos,
+            total_pendientes=total_pendientes, asistencias_hoy=asistencias_hoy,
+            mi_marcaje_hoy=mi_marcaje_hoy, marcajes_recientes=marcajes_recientes,
+            labels_dept=labels_dept, values_dept=values_dept,
+            labels_permisos=labels_permisos, values_permisos=values_permisos
+        )
+
+    # ---------------------------------------------------------
+    # VISTA PARA EMPLEADOS REGULARES (Diseño Mockup)
+    # ---------------------------------------------------------
+    else:
+        # 1. Marcaje actual
+        cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = CURDATE() ORDER BY id_registro DESC LIMIT 1", (usuario_id,))
+        mi_marcaje_hoy = cursor.fetchone()
+
+        # 2. Solicitudes Pendientes del usuario
+        cursor.execute("SELECT COUNT(*) AS total FROM solicitud_permiso WHERE id_colaborador = %s AND estado = 'Pendiente'", (usuario_id,))
+        mis_pendientes = cursor.fetchone()['total']
+
+        # 3. Horas trabajadas en la semana (Cálculo simple basado en días con hora_salida)
+        cursor.execute("SELECT COUNT(*) AS dias FROM registro_asistencia WHERE id_colaborador = %s AND YEARWEEK(fecha, 1) = YEARWEEK(CURDATE(), 1) AND hora_salida IS NOT NULL", (usuario_id,))
+        dias_trabajados = cursor.fetchone()['dias']
+        horas_semana = dias_trabajados * 8  # Asumiendo 8h por jornada completada
+
+        # 4. Últimas solicitudes (para la lista lateral)
+        cursor.execute("SELECT * FROM solicitud_permiso WHERE id_colaborador = %s ORDER BY id_solicitud DESC LIMIT 3", (usuario_id,))
+        mis_solicitudes = cursor.fetchall()
+
+        # Variables estáticas/simuladas para los gráficos y widgets por el momento
+        dias_vacaciones = 12 
+        labels_asistencia = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+        values_asistencia = [8, 8, 8, 8, 8, 0, 0] # Representa horas por día
+
+        cursor.close()
+        conn.close()
+
+        return render_template('dashboard.html',
+            mi_marcaje_hoy=mi_marcaje_hoy, mis_pendientes=mis_pendientes,
+            horas_semana=horas_semana, dias_vacaciones=dias_vacaciones,
+            mis_solicitudes=mis_solicitudes, labels_asistencia=labels_asistencia,
+            values_asistencia=values_asistencia
+        )
 
 
 @app.route('/marcar-asistencia', methods=['POST'])
