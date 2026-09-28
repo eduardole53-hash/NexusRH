@@ -169,51 +169,57 @@ def dashboard():
         )
 
 
+from datetime import datetime, timedelta
+
 @app.route('/marcar-asistencia', methods=['POST'])
 def marcar_asistencia():
-    if 'usuario_id' not in session:
-        flash("Por favor inicia sesión.", "warning")
-        return redirect(url_for('index'))
-
     usuario_id = session.get('usuario_id')
     accion = request.form.get('accion')
-
+    
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-
-    try:
+    
+    if accion == 'entrada':
+        cursor.execute("INSERT INTO registro_asistencia (id_colaborador, fecha, hora_entrada) VALUES (%s, CURDATE(), CURTIME())", (usuario_id,))
+        flash("Entrada registrada con éxito.", "success")
+        
+    elif accion == 'salida':
+        # Obtener la hora de entrada de hoy
         cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = CURDATE() ORDER BY id_registro DESC LIMIT 1", (usuario_id,))
-        registro = cursor.fetchone()
-
-        if accion == 'entrada':
-            if registro and registro['hora_salida'] is None:
-                flash("Ya tienes un turno de entrada activo hoy.", "warning")
-            else:
+        marcaje = cursor.fetchone()
+        
+        if marcaje and marcaje['hora_salida'] is None:
+            hora_salida_actual = datetime.now().time()
+            
+            # Cálculo matemático de horas trabajadas
+            entrada_dt = datetime.combine(datetime.today(), marcaje['hora_entrada'])
+            salida_dt = datetime.combine(datetime.today(), hora_salida_actual)
+            diferencia = salida_dt - entrada_dt
+            horas_totales = diferencia.total_seconds() / 3600  # Convertir a horas decimales
+            
+            horas_regulares = min(horas_totales, 8.0)
+            horas_excedentes = max(horas_totales - 8.0, 0.0)
+            
+            # Actualizar registro de asistencia
+            cursor.execute("""
+                UPDATE registro_asistencia 
+                SET hora_salida = %s, estado = 'Jornada Completada' 
+                WHERE id_registro = %s
+            """, (hora_salida_actual, marcaje['id_registro']))
+            
+            # Si hay horas extras, enviarlas a aprobación automáticamente
+            if horas_excedentes > 0:
                 cursor.execute("""
-                    INSERT INTO registro_asistencia (id_colaborador, fecha, hora_entrada, estado)
-                    VALUES (%s, CURDATE(), CURTIME(), 'Presente')
-                """, (usuario_id,))
-                conn.commit()
-                flash("⏰ ¡Entrada registrada correctamente!", "success")
-
-        elif accion == 'salida':
-            if not registro or registro['hora_salida'] is not None:
-                flash("No tienes un registro de entrada pendiente de salida.", "warning")
+                    INSERT INTO horas_extras (id_colaborador, fecha, horas_solicitadas, estado) 
+                    VALUES (%s, CURDATE(), %s, 'Pendiente')
+                """, (usuario_id, round(horas_excedentes, 2)))
+                flash(f"Salida registrada. Se han enviado {round(horas_excedentes, 2)} horas extras para aprobación.", "info")
             else:
-                cursor.execute("""
-                    UPDATE registro_asistencia
-                    SET hora_salida = CURTIME()
-                    WHERE id_registro = %s
-                """, (registro['id_registro'],))
-                conn.commit()
-                flash("🚪 ¡Salida registrada correctamente!", "info")
-
-    except Exception as err:
-        flash(f"Error al registrar asistencia: {err}", "danger")
-    finally:
-        cursor.close()
-        conn.close()
-
+                flash("Salida registrada con éxito.", "success")
+                
+    conn.commit()
+    cursor.close()
+    conn.close()
     return redirect(url_for('dashboard'))
 
 # --- 4. RUTAS DE ADMINISTRACIÓN (EDITAR/ELIMINAR) ---
@@ -1083,6 +1089,70 @@ def descargar_permiso(id_solicitud):
     
     return respuesta
 
+
+@app.route('/mis-recibos')
+def mis_recibos():
+    if 'usuario_id' not in session:
+        flash("Por favor inicia sesión primero.", "warning")
+        return redirect(url_for('index'))
+
+    usuario_id = session.get('usuario_id')
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        # Obtener datos del empleado
+        cursor.execute("""
+            SELECT c.*, d.nombre AS nombre_departamento, ca.titulo AS nombre_cargo
+            FROM colaborador c
+            LEFT JOIN departamento d ON c.id_departamento = d.id_departamento
+            LEFT JOIN cargo ca ON c.id_cargo = ca.id_cargo
+            WHERE c.id_colaborador = %s
+        """, (usuario_id,))
+        colaborador = cursor.fetchone()
+
+        salario_quincenal = 400.00
+        
+        # Buscar horas extras aprobadas en la quincena actual
+        cursor.execute("""
+            SELECT SUM(horas_solicitadas) AS total_extras 
+            FROM horas_extras 
+            WHERE id_colaborador = %s AND estado = 'Aprobada' AND MONTH(fecha) = MONTH(CURDATE())
+        """, (usuario_id,))
+        resultado_extras = cursor.fetchone()
+        horas_extras_aprobadas = float(resultado_extras['total_extras']) if resultado_extras and resultado_extras['total_extras'] else 0.0
+
+        # Cálculo de Nómina (Panamá)
+        tasa_hora_extra = (salario_quincenal / 120) * 1.25 
+        monto_extras = horas_extras_aprobadas * tasa_hora_extra
+        salario_bruto = salario_quincenal + monto_extras
+
+        # Deducciones de Ley (Panamá)
+        seguro_social = salario_bruto * 0.0975
+        seguro_educativo = salario_bruto * 0.0125
+        salario_neto = salario_bruto - seguro_social - seguro_educativo
+
+        nomina = {
+            "periodo": "Quincena Actual",
+            "salario_regular": round(salario_quincenal, 2),
+            "horas_extras": horas_extras_aprobadas,
+            "monto_extras": round(monto_extras, 2),
+            "salario_bruto": round(salario_bruto, 2),
+            "seguro_social": round(seguro_social, 2),
+            "seguro_educativo": round(seguro_educativo, 2),
+            "salario_neto": round(salario_neto, 2)
+        }
+
+    except Exception as err:
+        flash(f"Error al generar la nómina: {err}", "danger")
+        nomina = None
+        colaborador = None
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('recibo_nomina.html', colaborador=colaborador, nomina=nomina)
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
-    
