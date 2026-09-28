@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recibo de Nómina - {{ colaborador.nombre }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f4f7f6; }
+        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
+        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
+        .sidebar a:hover { background-color: rgba(255, 255, 255, 0.15); color: white; }
+        .sidebar a.active { background-color: rgba(255, 255, 255, 0.2); font-weight: bold; border-left: 4px solid white; }
+        .card-nomina { border: none; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .monto-destacado { font-size: 2rem; font-weight: bold; color: #198754; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            
+            <!-- Sidebar (Menú Lateral Universal) -->
+            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
+                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
+                <hr>
+                
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %}">📊 Panel General</a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/colaboradores" class="{% if request.path.startswith('/colaborador') %}active{% endif %}">👥 Colaboradores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/departamentos" class="{% if request.path == '/departamentos' %}active{% endif %}">🏢 Departamentos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/cargos" class="{% if request.path == '/cargos' %}active{% endif %}">💼 Cargos</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a href="/permisos" class="{% if request.path == '/permisos' %}active{% endif %}">🏝️ Permisos / Vacaciones</a>
+                    </li>
+                    
+                    <!-- MÓDULOS RESTRINGIDOS SOLO A EMPLEADOS REGULARES -->
+                    {% if session.get('rol') not in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        {% set mi_ruta_asistencia = '/colaborador/' ~ session.get('usuario_id') ~ '/asistencias' %}
+                        <a href="{{ mi_ruta_asistencia }}" class="{% if request.path == mi_ruta_asistencia %}active{% endif %}">⏰ Mi Asistencia</a>
+                    </li>
+                    
+                    <!-- NUEVA PESTAÑA: Mis Recibos -->
+                    <li class="nav-item">
+                        <a href="/mis-recibos" class="{% if request.path == '/mis-recibos' %}active{% endif %}">🧾 Mis Recibos</a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/reportes" class="{% if request.path == '/reportes' %}active{% endif %}">📈 Reportes</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item mt-5">
+                        <a href="/logout" class="text-danger">🚪 Cerrar Sesión</a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Contenido Principal -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold text-dark">Mis Recibos de Nómina</h2>
+                    <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+                </div>
+
+                {% if nomina %}
+                <div class="card card-nomina p-4">
+                    <div class="row mb-4 border-bottom pb-3">
+                        <div class="col-md-6">
+                            <h4 class="text-primary fw-bold">NEXUS RH</h4>
+                            <p class="mb-0 text-muted">Comprobante de Pago Quincenal</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <p class="mb-0"><strong>Colaborador:</strong> {{ colaborador.nombre }} {{ colaborador.apellido }}</p>
+                            <p class="mb-0"><strong>Cédula:</strong> {{ colaborador.cedula }}</p>
+                            <p class="mb-0"><strong>Cargo:</strong> {{ colaborador.nombre_cargo }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Columna Ingresos -->
+                        <div class="col-md-6 border-end">
+                            <h5 class="fw-bold mb-3 text-success">Ingresos</h5>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Salario Regular (Quincena)</span>
+                                <span>${{ nomina.salario_regular }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Horas Extras ({{ nomina.horas_extras }} hrs)</span>
+                                <span>${{ nomina.monto_extras }}</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold">
+                                <span>Total Ingresos Brutos</span>
+                                <span>${{ nomina.salario_bruto }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Columna Deducciones -->
+                        <div class="col-md-6">
+                            <h5 class="fw-bold mb-3 text-danger">Deducciones (Ley de Panamá)</h5>
+                            <div class="d-flex justify-content-between mb-2 text-danger">
+                                <span>Seguro Social (9.75%)</span>
+                                <span>- ${{ nomina.seguro_social }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 text-danger">
+                                <span>Seguro Educativo (1.25%)</span>
+                                <span>- ${{ nomina.seguro_educativo }}</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold text-danger">
+                                <span>Total Deducciones</span>
+                                <span>- ${{ (nomina.seguro_social + nomina.seguro_educativo) | round(2) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4 pt-4 border-top">
+                        <div class="col-12 text-center">
+                            <p class="text-muted mb-1">Total a Recibir (Salario Neto)</p>
+                            <div class="monto-destacado">${{ nomina.salario_neto }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

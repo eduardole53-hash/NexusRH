@@ -48,6 +48,11 @@
                         {% set mi_ruta_asistencia = '/colaborador/' ~ session.get('usuario_id') ~ '/asistencias' %}
                         <a href="{{ mi_ruta_asistencia }}" class="{% if request.path == mi_ruta_asistencia %}active{% endif %}">⏰ Mi Asistencia</a>
                     </li>
+                    
+                    <!-- NUEVA PESTAÑA: Mis Recibos -->
+                    <li class="nav-item">
+                        <a href="/mis-recibos" class="{% if request.path == '/mis-recibos' %}active{% endif %}">🧾 Mis Recibos</a>
+                    </li>
                     {% endif %}
 
                     {% if session.get('rol') in ['Administrador', 'RRHH'] %}
