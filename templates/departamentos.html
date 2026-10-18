@@ -5,13 +5,106 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus RH - Departamentos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #f4f7f6; }
-        .sidebar { min-height: 100vh; background-color: #0d42ff; color: white; }
-        .sidebar a { color: rgba(255, 255, 255, 0.8); text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; margin-bottom: 5px; }
-        .sidebar a:hover, .sidebar a.active { background-color: rgba(255, 255, 255, 0.15); color: white; }
-        .card-metric { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    </style>
+    <!-- Cargar Google Fonts para la nueva tipografía -->
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+    /* Aplicar la nueva tipografía */
+    body { 
+        background-color: #F5F7FA; /* Fondo general más cálido y moderno */
+        font-family: 'Inter', sans-serif; /* Texto normal */
+        color: #333333;
+    }
+    
+    h1, h2, h3, h4, h5, .sidebar a, .quick-action-card span {
+        font-family: 'Montserrat', sans-serif; /* Títulos y navegación */
+    }
+
+    /* Estilos del Panel Lateral (Sidebar) inspirados en el Logo */
+    .sidebar { 
+        min-height: 100vh; 
+        /* Degradado inspirado en la letra 'N' del logo */
+        background: linear-gradient(135deg, #021a42 0%, #053a82 100%); 
+        color: white; 
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    }
+    .sidebar h3 {
+        letter-spacing: 1px;
+    }
+    .sidebar a { 
+        color: rgba(255, 255, 255, 0.7); 
+        text-decoration: none; 
+        padding: 12px 15px; 
+        display: block; 
+        border-radius: 8px; 
+        margin-bottom: 8px; 
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    .sidebar a:hover { 
+        background-color: rgba(255, 255, 255, 0.1); 
+        color: white; 
+        transform: translateX(5px); /* Pequeño efecto de movimiento al pasar el mouse */
+    }
+    .sidebar a.active { 
+        background-color: rgba(255, 255, 255, 0.2); 
+        font-weight: 600; 
+        color: white;
+        border-left: 4px solid #00B4D8; /* Acento del azul claro del logo */
+    }
+
+    /* Estilo de las Tarjetas (Cards) */
+    .card {
+        border: none;
+        border-radius: 12px; /* Bordes más redondeados y amigables */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04); /* Sombra muy sutil */
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08); /* Sombra al pasar el mouse */
+    }
+
+    /* Botones de Acción Rápida (Dashboard Empleado) */
+    .quick-action-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        border: 1px solid #E2E8F0;
+        transition: all 0.3s ease;
+    }
+    .quick-action-card:hover {
+        background-color: #053a82; /* Cambia a azul corporativo al pasar el mouse */
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(5, 58, 130, 0.2);
+    }
+    .quick-action-card:hover span {
+        color: white !important; /* El texto se vuelve blanco */
+    }
+
+    /* Botones Bootstrap Modificados (Botón Primario) */
+    .btn-primary {
+        background-color: #053a82;
+        border-color: #053a82;
+        border-radius: 8px;
+        font-weight: 500;
+        font-family: 'Montserrat', sans-serif;
+        padding: 8px 20px;
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        background-color: #002868;
+        border-color: #002868;
+        box-shadow: 0 4px 10px rgba(0, 40, 104, 0.3);
+    }
+    
+    /* El banner superior del dashboard */
+    .bg-primary {
+        background: linear-gradient(135deg, #053a82 0%, #007BFF 100%) !important;
+        border-radius: 12px !important;
+    }
+</style>
+
 </head>
 <body>
     <div class="container-fluid">
