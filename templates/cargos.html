@@ -4,131 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus RH - Cargos</title>
+    <!-- Tailwind CSS y Bootstrap -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Cargar Google Fonts para la nueva tipografía -->
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
-<style>
-    /* Aplicar la nueva tipografía */
-    body { 
-        background-color: #F5F7FA; /* Fondo general más cálido y moderno */
-        font-family: 'Inter', sans-serif; /* Texto normal */
-        color: #333333;
-    }
-    
-    h1, h2, h3, h4, h5, .sidebar a, .quick-action-card span {
-        font-family: 'Montserrat', sans-serif; /* Títulos y navegación */
-    }
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        nexusNavy: '#041d4a',
+                        nexusBlue: '#003b8c',
+                        nexusCyan: '#00B4D8',
+                    }
+                }
+            }
+        }
+    </script>
 
-    /* Estilos del Panel Lateral (Sidebar) inspirados en el Logo */
-    .sidebar { 
-        min-height: 100vh; 
-        /* Degradado inspirado en la letra 'N' del logo */
-        background: linear-gradient(135deg, #021a42 0%, #053a82 100%); 
-        color: white; 
-        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
-    }
-    .sidebar h3 {
-        letter-spacing: 1px;
-    }
-    .sidebar a { 
-        color: rgba(255, 255, 255, 0.7); 
-        text-decoration: none; 
-        padding: 12px 15px; 
-        display: block; 
-        border-radius: 8px; 
-        margin-bottom: 8px; 
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-    .sidebar a:hover { 
-        background-color: rgba(255, 255, 255, 0.1); 
-        color: white; 
-        transform: translateX(5px); /* Pequeño efecto de movimiento al pasar el mouse */
-    }
-    .sidebar a.active { 
-        background-color: rgba(255, 255, 255, 0.2); 
-        font-weight: 600; 
-        color: white;
-        border-left: 4px solid #00B4D8; /* Acento del azul claro del logo */
-    }
+    <style>
+        body { 
+            background-color: #F8FAFC; 
+            font-family: 'Inter', sans-serif;
+            color: #333333;
+            background-image: 
+                linear-gradient(rgba(0, 59, 140, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 59, 140, 0.03) 1px, transparent 1px);
+            background-size: 32px 32px;
+            background-position: center center;
+        }
+        
+        h1, h2, h3, h4, h5, .sidebar a, .font-heading {
+            font-family: 'Montserrat', sans-serif;
+        }
 
-    /* Estilo de las Tarjetas (Cards) */
-    .card {
-        border: none;
-        border-radius: 12px; /* Bordes más redondeados y amigables */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04); /* Sombra muy sutil */
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .card:hover {
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08); /* Sombra al pasar el mouse */
-    }
+        .sidebar { 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #021a42 0%, #003b8c 100%); 
+            color: white; 
+            box-shadow: 4px 0 25px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 1rem 0;
+        }
 
-    /* Botones de Acción Rápida (Dashboard Empleado) */
-    .quick-action-card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-        border: 1px solid #E2E8F0;
-        transition: all 0.3s ease;
-    }
-    .quick-action-card:hover {
-        background-color: #053a82; /* Cambia a azul corporativo al pasar el mouse */
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(5, 58, 130, 0.2);
-    }
-    .quick-action-card:hover span {
-        color: white !important; /* El texto se vuelve blanco */
-    }
+        .sidebar a { 
+            color: rgba(255, 255, 255, 0.7); 
+            text-decoration: none; 
+            padding: 14px 18px; 
+            display: flex; 
+            align-items: center;
+            gap: 12px;
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .sidebar a:hover { 
+            background-color: rgba(255, 255, 255, 0.1); 
+            color: white; 
+            transform: translateX(4px);
+        }
+        .sidebar a.active { 
+            background-color: rgba(255, 255, 255, 0.15); 
+            font-weight: 600; 
+            color: white;
+            border-left: 4px solid #00B4D8;
+        }
+        
+        .sidebar a svg {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        .sidebar a:hover svg, .sidebar a.active svg {
+            opacity: 1;
+            color: #00B4D8;
+        }
 
-    /* Botones Bootstrap Modificados (Botón Primario) */
-    .btn-primary {
-        background-color: #053a82;
-        border-color: #053a82;
-        border-radius: 8px;
-        font-weight: 500;
-        font-family: 'Montserrat', sans-serif;
-        padding: 8px 20px;
-        transition: all 0.3s ease;
-    }
-    .btn-primary:hover {
-        background-color: #002868;
-        border-color: #002868;
-        box-shadow: 0 4px 10px rgba(0, 40, 104, 0.3);
-    }
-    
-    /* El banner superior del dashboard */
-    .bg-primary {
-        background: linear-gradient(135deg, #053a82 0%, #007BFF 100%) !important;
-        border-radius: 12px !important;
-    }
-</style>
+        .card {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid #E2E8F0;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02), 0 10px 15px -3px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+        }
 
+        .btn-primary {
+            background-color: #003b8c;
+            border-color: #003b8c;
+            border-radius: 10px;
+            font-weight: 600;
+            font-family: 'Montserrat', sans-serif;
+            padding: 10px 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 59, 140, 0.2);
+        }
+        .btn-primary:hover {
+            background-color: #021a42;
+            border-color: #021a42;
+            box-shadow: 0 8px 15px rgba(0, 59, 140, 0.3);
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
-                <h3 class="fw-bold fs-4 mb-4 text-center">NEXUS RH</h3>
-                <hr>
-                <ul class="nav flex-column">
-                    <li class="nav-item"><a href="/dashboard">📊 Panel General</a></li>
-                    <li class="nav-item"><a href="/colaboradores">👥 Colaboradores</a></li>
-                    <li class="nav-item"><a href="/departamentos">🏢 Departamentos</a></li>
-                    <li class="nav-item"><a href="/cargos" class="active">💼 Cargos</a></li>
-                    <li class="nav-item"><a href="/permisos">🏝️ Permisos / Vacaciones</a></li>
-                    <li class="nav-item"><a href="/reportes">📈 Reportes</a></li>
-                    <li class="nav-item mt-5"><a href="/logout" class="text-danger">🚪 Cerrar Sesión</a></li>
-                </ul>
-            </div>
-
-            <!-- Contenido Principal -->
-            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-4 py-4">
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+            <!-- SIDEBAR UNIFICADO -->
+            <div class="col-md-3 col-lg-2 sidebar d-none d-md-block flex flex-col">
+                <div class="sidebar-logo border-b border-white/10 mb-4 pb-4 px-4">
+                    <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" class="h-10 w-auto bg-white rounded p-1" onerror="this.src='logo.jpeg'; this.onerror='';">
+                    <h3 class="font-extrabold text-xl m-0 tracking-tight">NEXUS <span class="text-nexusCyan">RH</span></h3>
+                </div>
                 
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2 fw-bold text-dark">Gestión de Cargos</h1>
+                <ul class="nav flex-column px-2 flex-grow-1">
+                    <li class="nav-item">
+                        <a href="/dashboard" class="{% if request.path == '/dashboard' %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                            Panel General
+                        </a>
+                    </li>
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/colaboradores" class="{% if request.path.startswith('/colaborador') %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                            Colaboradores
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/departamentos" class="{% if request.path == '/departamentos' %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                            Departamentos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <!-- CLASE ACTIVE FORZADA EN CARGOS PARA ESTA VISTA -->
+                        <a href="/cargos" class="active">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            Cargos
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a href="/permisos" class="{% if request.path == '/permisos' %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            Permisos / Vacaciones
+                        </a>
+                    </li>
+                    
+                    {% if session.get('rol') not in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        {% set mi_ruta_asistencia = '/colaborador/' ~ session.get('usuario_id') ~ '/asistencias' %}
+                        <a href="{{ mi_ruta_asistencia }}" class="{% if request.path == mi_ruta_asistencia %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            Mi Asistencia
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/mis-recibos" class="{% if request.path == '/mis-recibos' %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Mis Recibos
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('rol') in ['Administrador', 'RRHH'] %}
+                    <li class="nav-item">
+                        <a href="/reportes" class="{% if request.path == '/reportes' %}active{% endif %}">
+                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            Reportes
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <!-- Botón de Cerrar Sesión -->
+                <div class="mt-auto px-2 pb-4">
+                    <a href="/logout" class="text-red-300 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        Cerrar Sesión
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Contenido Principal Original -->
+            <div class="col-md-9 col-lg-10 ms-sm-auto px-md-5 py-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+                    <h1 class="h2 font-heading font-extrabold text-nexusNavy">Gestión de Cargos</h1>
                     <button class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addCargoModal">
                         + Nuevo Cargo
                     </button>
@@ -138,7 +220,7 @@
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold" role="alert">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold shadow-sm rounded-lg border-0" role="alert">
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
@@ -147,52 +229,54 @@
                 {% endwith %}
 
                 <!-- Tabla de Cargos -->
-                <div class="card card-metric p-4 bg-white">
+                <div class="card p-4">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="bg-gray-50 text-gray-600 font-heading text-sm">
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Título del Cargo</th>
-                                    <th class="text-center">Colaboradores Asignados</th>
-                                    <th class="text-center">Acciones</th>
+                                    <th class="py-3 px-3 rounded-tl-lg border-0">ID</th>
+                                    <th class="py-3 px-3 border-0">Título del Cargo</th>
+                                    <th class="py-3 px-3 text-center border-0">Colaboradores Asignados</th>
+                                    <th class="py-3 px-3 text-center rounded-tr-lg border-0">Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="border-t border-gray-100">
                                 {% if cargos %}
                                     {% for item in cargos %}
-                                    <tr>
-                                        <td class="fw-bold text-secondary">#{{ item.id_cargo }}</td>
-                                        <td class="fw-bold text-dark">{{ item.titulo }}</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-info text-dark">
+                                    <tr class="border-b border-gray-50">
+                                        <td class="fw-bold text-gray-500 py-3 px-3">#{{ item.id_cargo }}</td>
+                                        <td class="fw-bold text-nexusNavy py-3 px-3">{{ item.titulo }}</td>
+                                        <td class="text-center py-3 px-3">
+                                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-nexusBlue border border-blue-100">
                                                 👥 {{ item.total_colaboradores }}
                                             </span>
                                         </td>
-                                        <td class="text-center">
-                                            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item.id_cargo }}">✏️ Editar</button>
-                                            
-                                            <form action="/eliminar-cargo/{{ item.id_cargo }}" method="POST" class="d-inline" onsubmit="return confirm('¿Seguro que deseas eliminar el cargo {{ item.titulo }}?');">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Eliminar</button>
-                                            </form>
+                                        <td class="text-center py-3 px-3">
+                                            <div class="flex justify-center gap-2">
+                                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ item.id_cargo }}">✏️ Editar</button>
+                                                
+                                                <form action="/eliminar-cargo/{{ item.id_cargo }}" method="POST" class="d-inline m-0" onsubmit="return confirm('¿Seguro que deseas eliminar el cargo {{ item.titulo }}?');">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Eliminar</button>
+                                                </form>
+                                            </div>
 
                                             <!-- Modal de Edición -->
                                             <div class="modal fade text-start" id="editModal{{ item.id_cargo }}" tabindex="-1" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title fw-bold">Editar Cargo</h5>
+                                                <div class="modal-dialog modal-dialog-centered">
+                                                    <div class="modal-content border-0 shadow-lg rounded-xl">
+                                                        <div class="modal-header border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                                                            <h5 class="modal-title font-heading font-bold text-nexusNavy">Editar Cargo</h5>
                                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                         </div>
                                                         <form action="/editar-cargo/{{ item.id_cargo }}" method="POST">
-                                                            <div class="modal-body">
+                                                            <div class="modal-body p-4">
                                                                 <div class="mb-3">
-                                                                    <label class="form-label fw-bold">Título del Cargo</label>
-                                                                    <input type="text" class="form-control" name="titulo" value="{{ item.titulo }}" required>
+                                                                    <label class="form-label font-bold text-gray-700">Título del Cargo</label>
+                                                                    <input type="text" class="form-control rounded-lg focus:ring-2 focus:ring-nexusCyan" name="titulo" value="{{ item.titulo }}" required>
                                                                 </div>
                                                             </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                            <div class="modal-footer border-t border-gray-100">
+                                                                <button type="button" class="btn btn-light font-medium rounded-lg" data-bs-dismiss="modal">Cancelar</button>
                                                                 <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                                                             </div>
                                                         </form>
@@ -204,7 +288,7 @@
                                     {% endfor %}
                                 {% else %}
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">No hay cargos registrados.</td>
+                                        <td colspan="4" class="text-center text-gray-400 py-6 font-medium">No hay cargos registrados.</td>
                                     </tr>
                                 {% endif %}
                             </tbody>
@@ -218,21 +302,21 @@
 
     <!-- Modal Agregar Cargo -->
     <div class="modal fade" id="addCargoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Registrar Nuevo Cargo</h5>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-xl">
+                <div class="modal-header border-b border-gray-100 bg-gray-50 rounded-t-xl">
+                    <h5 class="modal-title font-heading font-bold text-nexusNavy">Registrar Nuevo Cargo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="/agregar-cargo" method="POST">
-                    <div class="modal-body">
+                    <div class="modal-body p-4">
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Título del Cargo</label>
-                            <input type="text" class="form-control" name="titulo" placeholder="ej. Desarrollador Senior, Contador" required>
+                            <label class="form-label font-bold text-gray-700">Título del Cargo</label>
+                            <input type="text" class="form-control rounded-lg focus:ring-2 focus:ring-nexusCyan" name="titulo" placeholder="ej. Desarrollador Senior, Contador" required>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <div class="modal-footer border-t border-gray-100">
+                        <button type="button" class="btn btn-light font-medium rounded-lg" data-bs-dismiss="modal">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar Cargo</button>
                     </div>
                 </form>
