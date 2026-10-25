@@ -213,7 +213,6 @@
             <!-- ========================================== -->
             <div class="col-md-3 col-lg-2 sidebar d-none d-md-block flex flex-col">
                 <div class="sidebar-logo border-b border-white/10 mb-4 pb-4 px-4">
-                    <!-- Conexion al Logo -->
                     <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="Logo" class="h-10 w-auto bg-white rounded p-1" onerror="this.src='logo.jpeg'; this.onerror='';">
                     <h3 class="font-extrabold text-xl m-0 tracking-tight">NEXUS <span class="text-nexusCyan">RH</span></h3>
                 </div>
@@ -294,12 +293,12 @@
             <!-- ========================================== -->
             <div class="col-md-9 col-lg-10 ms-sm-auto px-md-5 py-4">
 
-                <!-- Mensajes Flash -->
+                <!-- Mensajes Flash con Filtro SAFE -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
                             <div class="alert alert-{{ category }} alert-dismissible fade show fw-bold py-3 mt-2 shadow-sm rounded-lg border-0" role="alert">
-                                {{ message }}
+                                {{ message|safe }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         {% endfor %}
@@ -379,9 +378,13 @@
                                     <span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-1 animate-pulse"></span>
                                     <small class="font-medium">Entrada registrada: <strong>{{ mi_marcaje_hoy.hora_entrada }}</strong></small>
                                 </div>
-                                <form action="/marcar-asistencia" method="POST">
+                                <form action="/marcar-asistencia" method="POST" id="form-salida-admin">
                                     <input type="hidden" name="accion" value="salida">
-                                    <button type="submit" class="btn btn-danger w-100 font-bold py-2.5 rounded-lg shadow-sm">Registrar Salida</button>
+                                    <input type="hidden" name="latitud" id="lat-salida-admin">
+                                    <input type="hidden" name="longitud" id="lon-salida-admin">
+                                    <button type="button" onclick="obtenerUbicacion('form-salida-admin', 'lat-salida-admin', 'lon-salida-admin')" class="btn btn-danger w-100 font-bold py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2">
+                                        Registrar Salida 📍
+                                    </button>
                                 </form>
                             {% elif mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is not none %}
                                 <div class="bg-gray-50 border border-gray-200 text-gray-600 py-2 rounded-lg mb-3">
@@ -390,9 +393,13 @@
                                 <button class="btn btn-outline-secondary w-100 py-2.5 rounded-lg font-medium" disabled>Turno Finalizado</button>
                             {% else %}
                                 <p class="text-gray-500 text-sm mb-3">Aún no has registrado tu entrada hoy.</p>
-                                <form action="/marcar-asistencia" method="POST">
+                                <form action="/marcar-asistencia" method="POST" id="form-entrada-admin">
                                     <input type="hidden" name="accion" value="entrada">
-                                    <button type="submit" class="btn btn-success w-100 font-bold py-2.5 rounded-lg shadow-sm">Registrar Entrada</button>
+                                    <input type="hidden" name="latitud" id="lat-entrada-admin">
+                                    <input type="hidden" name="longitud" id="lon-entrada-admin">
+                                    <button type="button" onclick="obtenerUbicacion('form-entrada-admin', 'lat-entrada-admin', 'lon-entrada-admin')" class="btn btn-success w-100 font-bold py-2.5 rounded-lg shadow-sm flex items-center justify-center gap-2">
+                                        Registrar Entrada 📍
+                                    </button>
                                 </form>
                             {% endif %}
                         </div>
@@ -541,16 +548,24 @@
                                             <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
                                             Entrada: {{ mi_marcaje_hoy.hora_entrada }}
                                         </div>
-                                        <form action="/marcar-asistencia" method="POST" class="m-0">
+                                        <form action="/marcar-asistencia" method="POST" class="m-0" id="form-salida-emp">
                                             <input type="hidden" name="accion" value="salida">
-                                            <button type="submit" class="btn btn-danger font-bold px-4 py-2 rounded-lg shadow-sm">Registrar Salida</button>
+                                            <input type="hidden" name="latitud" id="lat-salida-emp">
+                                            <input type="hidden" name="longitud" id="lon-salida-emp">
+                                            <button type="button" onclick="obtenerUbicacion('form-salida-emp', 'lat-salida-emp', 'lon-salida-emp')" class="btn btn-danger font-bold px-4 py-2 rounded-lg shadow-sm flex items-center gap-2">
+                                                Registrar Salida 📍
+                                            </button>
                                         </form>
                                     {% elif mi_marcaje_hoy and mi_marcaje_hoy.hora_salida is not none %}
                                         <button class="btn btn-outline-secondary font-medium px-4 py-2 rounded-lg" disabled>Turno Finalizado</button>
                                     {% else %}
-                                        <form action="/marcar-asistencia" method="POST" class="m-0">
+                                        <form action="/marcar-asistencia" method="POST" class="m-0" id="form-entrada-emp">
                                             <input type="hidden" name="accion" value="entrada">
-                                            <button type="submit" class="btn btn-success font-bold px-4 py-2 rounded-lg shadow-sm">Registrar Entrada</button>
+                                            <input type="hidden" name="latitud" id="lat-entrada-emp">
+                                            <input type="hidden" name="longitud" id="lon-entrada-emp">
+                                            <button type="button" onclick="obtenerUbicacion('form-entrada-emp', 'lat-entrada-emp', 'lon-entrada-emp')" class="btn btn-success font-bold px-4 py-2 rounded-lg shadow-sm flex items-center gap-2">
+                                                Registrar Entrada 📍
+                                            </button>
                                         </form>
                                     {% endif %}
                                 </div>
@@ -635,7 +650,7 @@
         </div>
     </div>
 
-    <!-- Script Consolidado (Sin cambios en lógica de JS/Charts) -->
+    <!-- Script Consolidado (Con Función GPS) -->
     <script>
         // Función Global del Reloj
         document.addEventListener('DOMContentLoaded', function() {
@@ -707,6 +722,38 @@
                 });
             }
         {% endif %}
+        
+        // Función para capturar GPS antes de enviar el formulario
+        function obtenerUbicacion(formId, latId, lonId) {
+            const form = document.getElementById(formId);
+            const btn = form.querySelector('button');
+            
+            // Cambiar texto a cargando
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = 'Obteniendo GPS... 📍';
+            btn.disabled = true;
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // Éxito: Guardar coordenadas y enviar
+                        document.getElementById(latId).value = position.coords.latitude;
+                        document.getElementById(lonId).value = position.coords.longitude;
+                        form.submit();
+                    },
+                    function(error) {
+                        // Error: Enviar de todos modos pero sin GPS
+                        alert("No se pudo obtener la ubicación exacta. Asegúrate de dar permisos al navegador.");
+                        form.submit();
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                // Navegador no soporta GPS
+                alert("Geolocalización no soportada por este navegador.");
+                form.submit();
+            }
+        }
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

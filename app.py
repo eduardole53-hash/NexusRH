@@ -184,32 +184,63 @@ def dashboard():
             values_asistencia=values_asistencia
         )
 
-
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 
 @app.route('/marcar-asistencia', methods=['POST'])
 def marcar_asistencia():
     usuario_id = session.get('usuario_id')
     accion = request.form.get('accion')
+    # Recibimos las coordenadas (enviadas desde el navegador por JS)
+    latitud = request.form.get('latitud', '')
+    longitud = request.form.get('longitud', '')
+    
+    # Generamos el enlace de Google Maps si tenemos las coordenadas
+    ubicacion_maps = f"https://www.google.com/maps?q={latitud},{longitud}" if latitud and longitud else None
     
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
     if accion == 'entrada':
+        # Nota: Idealmente en tu BD deberías añadir una columna "ubicacion_entrada" para guardar el link, 
+        # pero por ahora, si no tienes la columna, lo imprimimos en consola o puedes guardarlo en 'estado' si cabe.
+        print(f"📍 Entrada marcada desde: {ubicacion_maps}")
+        
         cursor.execute("INSERT INTO registro_asistencia (id_colaborador, fecha, hora_entrada) VALUES (%s, CURDATE(), CURTIME())", (usuario_id,))
-        flash("Entrada registrada con éxito.", "success")
+        
+        mensaje = "Entrada registrada con éxito."
+        if ubicacion_maps:
+            mensaje += f" Ubicación capturada: <a href='{ubicacion_maps}' target='_blank' class='text-white underline'>Ver en Mapa</a>"
+        flash(mensaje, "success")
         
     elif accion == 'salida':
-        # Obtener la hora de entrada de hoy
+        print(f"📍 Salida marcada desde: {ubicacion_maps}")
+        
         cursor.execute("SELECT * FROM registro_asistencia WHERE id_colaborador = %s AND fecha = CURDATE() ORDER BY id_registro DESC LIMIT 1", (usuario_id,))
         marcaje = cursor.fetchone()
         
         if marcaje and marcaje['hora_salida'] is None:
             hora_salida_actual = datetime.now().time()
             
-            # Cálculo matemático de horas trabajadas
-            entrada_dt = datetime.combine(datetime.today(), marcaje['hora_entrada'])
+            # --- CORRECCIÓN DEL ERROR TIMEDELTA ---
+            hora_entrada_timedelta = marcaje['hora_entrada']
+            
+            # Convertimos el timedelta a un objeto time real
+            if isinstance(hora_entrada_timedelta, timedelta):
+                # Extraemos segundos totales y calculamos horas, min, seg
+                total_segundos = int(hora_entrada_timedelta.total_seconds())
+                horas = total_segundos // 3600
+                minutos = (total_segundos % 3600) // 60
+                segundos = total_segundos % 60
+                # Creamos el objeto time
+                hora_entrada_real = time(hour=horas, minute=minutos, second=segundos)
+            else:
+                # Por si acaso ya viniera como time
+                hora_entrada_real = hora_entrada_timedelta
+            
+            # Ahora sí podemos usar combine()
+            entrada_dt = datetime.combine(datetime.today(), hora_entrada_real)
             salida_dt = datetime.combine(datetime.today(), hora_salida_actual)
+            
             diferencia = salida_dt - entrada_dt
             horas_totales = diferencia.total_seconds() / 3600  # Convertir a horas decimales
             
@@ -229,9 +260,16 @@ def marcar_asistencia():
                     INSERT INTO horas_extras (id_colaborador, fecha, horas_solicitadas, estado) 
                     VALUES (%s, CURDATE(), %s, 'Pendiente')
                 """, (usuario_id, round(horas_excedentes, 2)))
-                flash(f"Salida registrada. Se han enviado {round(horas_excedentes, 2)} horas extras para aprobación.", "info")
+                mensaje = f"Salida registrada. Se han enviado {round(horas_excedentes, 2)} horas extras para aprobación."
+                categoria = "info"
             else:
-                flash("Salida registrada con éxito.", "success")
+                mensaje = "Salida registrada con éxito."
+                categoria = "success"
+                
+            if ubicacion_maps:
+                mensaje += f" Ubicación capturada: <a href='{ubicacion_maps}' target='_blank' class='text-white underline'>Ver en Mapa</a>"
+            
+            flash(mensaje, categoria)
                 
     conn.commit()
     cursor.close()
