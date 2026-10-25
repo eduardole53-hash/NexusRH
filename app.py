@@ -31,37 +31,53 @@ def get_db_connection():
     return conn
 
 # --- 1. RUTAS DE AUTENTICACIÓN ---
+
+# Nueva ruta principal para la Landing Page
 @app.route('/')
-def index():
+def landing_page():
+    # Si el usuario ya inició sesión, redirigirlo a su dashboard
     if 'usuario_id' in session:
         return redirect(url_for('dashboard'))
-    return render_template('index.html')
+    return render_template('nexus_rh_landing_page.html')
 
-@app.route('/login', methods=['POST'])
-def login():
-    correo = request.form['correo']
-    contrasena = request.form['contrasena']
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM colaborador WHERE correo_laboral = %s AND contrasena = %s", (correo, contrasena))
-    usuario = cursor.fetchone()
-    cursor.close()
-    conn.close()
-
-    if usuario:
-        # Guardamos los datos importantes en la sesión
-        session['usuario_id'] = usuario['id_colaborador']
-        session['rol'] = usuario['rol']
-        session['nombre'] = usuario['nombre']
-        session['apellido'] = usuario['apellido']
+# Tu antigua ruta '/' ahora es '/login' y maneja tanto GET (mostrar form) como POST (procesar datos)
+@app.route('/login', methods=['GET', 'POST'])
+def index():
+    # Si ya inició sesión, enviarlo al dashboard
+    if 'usuario_id' in session:
         return redirect(url_for('dashboard'))
-    else:
-        return render_template('index.html', error="Credenciales incorrectas. Intenta de nuevo.")
+        
+    if request.method == 'POST':
+        # Mantenemos tus variables originales del formulario
+        correo = request.form['correo']
+        contrasena = request.form['contrasena']
+        
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        # Mantenemos tu consulta original a la BD
+        cursor.execute("SELECT * FROM colaborador WHERE correo_laboral = %s AND contrasena = %s", (correo, contrasena))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if usuario:
+            # Guardamos los datos importantes en la sesión (como tenías originalmente)
+            session['usuario_id'] = usuario['id_colaborador']
+            session['rol'] = usuario['rol']
+            session['nombre'] = usuario['nombre']
+            session['apellido'] = usuario['apellido']
+            flash('Inicio de sesión exitoso.', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template('index.html', error="Credenciales incorrectas. Intenta de nuevo.")
+            
+    # Mostrar la vista de login (GET)
+    return render_template('index.html') 
 
 @app.route('/logout')
 def logout():
     session.clear() # Cierra la sesión
+    # Ahora redirige al index (login) o a la landing page ('landing_page')
     return redirect(url_for('index'))
 
 # --- RUTA DE MARCAJE RÁPIDO Y DASHBOARD ---
