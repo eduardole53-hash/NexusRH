@@ -3,140 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus RH - Iniciar Sesión</title>
-    <!-- Cargamos Bootstrap 5 para el diseño responsivo -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Cargar Google Fonts para la nueva tipografía -->
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <title>Iniciar Sesión | NEXUS RH</title>
+    <!-- Tailwind CSS para el diseño -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Nuestras tipografías corporativas -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        nexusNavy: '#041d4a',
+                        nexusBlue: '#003b8c',
+                        nexusCyan: '#00B4D8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* FONDO MOSAICO: Patrón de cuadrícula suave */
+        body { 
+            background-color: #F8FAFC; 
+            background-image: 
+                linear-gradient(rgba(0, 59, 140, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 59, 140, 0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+            background-position: center center;
+        }
+        
+        /* Opcional: Pequeños puntos en las intersecciones del mosaico */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: radial-gradient(circle at 16px 16px, rgba(0, 59, 140, 0.08) 2px, transparent 2px);
+            background-size: 32px 32px;
+            z-index: -1;
+            pointer-events: none;
+        }
 
-<style>
-    /* Aplicar la nueva tipografía */
-    body { 
-        background-color: #F5F7FA; /* Fondo general más cálido y moderno */
-        font-family: 'Inter', sans-serif; /* Texto normal */
-        color: #333333;
-    }
-    
-    h1, h2, h3, h4, h5, .sidebar a, .quick-action-card span {
-        font-family: 'Montserrat', sans-serif; /* Títulos y navegación */
-    }
-
-    /* Estilos del Panel Lateral (Sidebar) inspirados en el Logo */
-    .sidebar { 
-        min-height: 100vh; 
-        /* Degradado inspirado en la letra 'N' del logo */
-        background: linear-gradient(135deg, #021a42 0%, #053a82 100%); 
-        color: white; 
-        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
-    }
-    .sidebar h3 {
-        letter-spacing: 1px;
-    }
-    .sidebar a { 
-        color: rgba(255, 255, 255, 0.7); 
-        text-decoration: none; 
-        padding: 12px 15px; 
-        display: block; 
-        border-radius: 8px; 
-        margin-bottom: 8px; 
-        transition: all 0.3s ease;
-        font-weight: 500;
-    }
-    .sidebar a:hover { 
-        background-color: rgba(255, 255, 255, 0.1); 
-        color: white; 
-        transform: translateX(5px); /* Pequeño efecto de movimiento al pasar el mouse */
-    }
-    .sidebar a.active { 
-        background-color: rgba(255, 255, 255, 0.2); 
-        font-weight: 600; 
-        color: white;
-        border-left: 4px solid #00B4D8; /* Acento del azul claro del logo */
-    }
-
-    /* Estilo de las Tarjetas (Cards) */
-    .card {
-        border: none;
-        border-radius: 12px; /* Bordes más redondeados y amigables */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04); /* Sombra muy sutil */
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .card:hover {
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08); /* Sombra al pasar el mouse */
-    }
-
-    /* Botones de Acción Rápida (Dashboard Empleado) */
-    .quick-action-card {
-        background-color: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-        border: 1px solid #E2E8F0;
-        transition: all 0.3s ease;
-    }
-    .quick-action-card:hover {
-        background-color: #053a82; /* Cambia a azul corporativo al pasar el mouse */
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(5, 58, 130, 0.2);
-    }
-    .quick-action-card:hover span {
-        color: white !important; /* El texto se vuelve blanco */
-    }
-
-    /* Botones Bootstrap Modificados (Botón Primario) */
-    .btn-primary {
-        background-color: #053a82;
-        border-color: #053a82;
-        border-radius: 8px;
-        font-weight: 500;
-        font-family: 'Montserrat', sans-serif;
-        padding: 8px 20px;
-        transition: all 0.3s ease;
-    }
-    .btn-primary:hover {
-        background-color: #002868;
-        border-color: #002868;
-        box-shadow: 0 4px 10px rgba(0, 40, 104, 0.3);
-    }
-    
-    /* El banner superior del dashboard */
-    .bg-primary {
-        background: linear-gradient(135deg, #053a82 0%, #007BFF 100%) !important;
-        border-radius: 12px !important;
-    }
-</style>
-
+        h1, h2, h3, h4, h5, .btn-font { 
+            font-family: 'Montserrat', sans-serif; 
+        }
+        
+        /* Animación de entrada suave */
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fade-in-up 0.5s ease-out forwards;
+        }
+    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-5 col-lg-4">
-                <div class="card login-card p-4">
-                    <div class="brand-logo">NEXUS RH</div>
-                    <p class="text-center text-muted mb-4">Gestión de Recursos Humanos</p>
-                    
-                    <!-- Aquí Flask inyectará un mensaje de error si las credenciales fallan -->
-                    {% if error %}
-                    <div class="alert alert-danger py-2 text-center" role="alert">
-                        {{ error }}
-                    </div>
-                    {% endif %}
+<body class="font-sans text-gray-800 antialiased min-h-screen flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
 
-                    <!-- Formulario que envía los datos a la ruta /login en Python -->
-                    <form action="/login" method="POST">
-                        <div class="mb-3">
-                            <label for="correo" class="form-label fw-bold">Correo Laboral</label>
-                            <input type="email" class="form-control" id="correo" name="correo" required placeholder="ej. admin@nexusrh.com">
-                        </div>
-                        <div class="mb-4">
-                            <label for="contrasena" class="form-label fw-bold">Contraseña</label>
-                            <input type="password" class="form-control" id="contrasena" name="contrasena" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100 fw-bold" style="background-color: #0d42ff;">Ingresar</button>
-                    </form>
+    <!-- Destellos de color difuminados en el fondo para mayor estética -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 rounded-full bg-nexusBlue/10 blur-3xl"></div>
+        <div class="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] rounded-full bg-nexusCyan/10 blur-3xl"></div>
+    </div>
+
+    <!-- Tarjeta principal de Login -->
+    <div class="max-w-md w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 sm:p-10 animate-fade-in-up relative z-10">
+        
+        <!-- Cabecera / Logo -->
+        <div class="text-center mb-8">
+            <div class="flex flex-col items-center justify-center mb-4">
+                <!-- Conexión de tu logo mediante Flask -->
+                <img src="{{ url_for('static', filename='logo.jpeg') }}" alt="NEXUS RH Logo" class="h-16 w-auto object-contain mb-3" onerror="this.src='logo.jpeg'; this.onerror='';">
+                <span class="text-2xl font-extrabold tracking-tight btn-font">
+                    <span class="text-nexusNavy">NEXUS</span> <span class="text-nexusCyan">RH</span>
+                </span>
+            </div>
+            <p class="text-sm text-gray-500 font-medium">
+                Gestión de Recursos Humanos
+            </p>
+        </div>
+
+        <!-- Alerta de Flask para Credenciales Incorrectas -->
+        {% if error %}
+        <div class="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700 font-medium">
+                        {{ error }}
+                    </p>
                 </div>
             </div>
         </div>
+        {% endif %}
+
+        <!-- Formulario - Apuntando a /login por POST -->
+        <form class="space-y-6" action="/login" method="POST">
+            
+            <!-- Campo: Correo Laboral -->
+            <div>
+                <label for="correo" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Correo Laboral
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                        </svg>
+                    </div>
+                    <input id="correo" name="correo" type="email" autocomplete="email" required 
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-nexusBlue/50 focus:border-nexusBlue transition-all duration-300 ease-in-out sm:text-sm" 
+                        placeholder="ej. admin@nexusrh.com">
+                </div>
+            </div>
+
+            <!-- Campo: Contraseña -->
+            <div>
+                <label for="contrasena" class="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Contraseña
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    </div>
+                    <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required 
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl text-gray-900 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-nexusBlue/50 focus:border-nexusBlue transition-all duration-300 ease-in-out sm:text-sm" 
+                        placeholder="••••••••">
+                </div>
+            </div>
+
+            <!-- Botón de acceso -->
+            <div class="pt-2">
+                <button type="submit" 
+                    class="group relative w-full flex justify-center py-3.5 px-4 border border-transparent btn-font text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-md transform hover:-translate-y-0.5 transition-all duration-300">
+                    Ingresar
+                </button>
+            </div>
+        </form>
     </div>
+
+    <!-- Enlace para volver a la Landing Page -->
+    <div class="mt-8 text-center relative z-10">
+        <a href="/" class="text-sm font-medium text-gray-500 hover:text-nexusNavy transition-colors inline-flex items-center gap-1">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Volver a la página principal
+        </a>
+    </div>
+
 </body>
 </html>
